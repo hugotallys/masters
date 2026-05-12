@@ -6,7 +6,7 @@
 #set text(
   font: "New Computer Modern",
   size: 12pt,
-  lang: "en"
+  lang: "en",
 )
 
 #set par(justify: true, leading: 0.65em)
@@ -70,9 +70,6 @@
   first-line-indent: 20pt,
   justify: true,
 )
-
-// --- MACROS ---
-#let comment(content) = text(fill: red)[#content] // we should remove this line since it now has comment capabilities
 
 = Introduction
 
@@ -335,7 +332,9 @@ The following tables detail the planned execution of tasks in order to fulfill t
     inset: 10pt,
     align: left,
     [*Activity*], [*Description*],
-    [1], [Gather datasets (AMASS, LAFAN1, AnimalSyn3D, Unitree G1) and set up simulation environment (IsaacGym, MuJoCo)],
+    [1],
+    [Gather datasets (AMASS, LAFAN1, AnimalSyn3D, Unitree G1) and set up simulation environment (IsaacGym, MuJoCo)],
+
     [2], [Implement the baseline experiments for kinematic and optimization based retargeting],
     [3], [Extract baseline metrics, identify artifacts, and draft proposal text sections],
     [4], [Finalize proposal text, integrate baseline results, and defend the master's proposal],
@@ -362,16 +361,16 @@ The following tables detail the planned execution of tasks in order to fulfill t
     [*Activity*], [Mar], [Apr], [May], [Jun], [Jul], [Aug], [Sept], [Oct], [Nov], [Dec],
 
     // Data Rows
-    [1],  [x], [x],  [],  [],  [],  [],  [],  [],  [],  [],
-    [2],  [], [x],  [x],  [x],  [],  [],  [],  [],  [],  [],
-    [3],  [],  [x], [x], [x],  [],  [],  [],  [],  [],  [],
-    [4],  [],  [],  [], [x], [],  [],  [],  [],  [],  [],
-    [5],  [],  [],  [],  [],  [x], [x],  [],  [],  [],  [],
-    [6],  [],  [],  [],  [],  [],  [x], [x],  [],  [],  [],
-    [7],  [],  [],  [],  [],  [],  [],  [x], [x],  [x],  [],
-    [8],  [],  [],  [],  [],  [],  [],  [],  [x], [x],  [],
-    [9],  [],  [],  [],  [],  [],  [],  [],  [],  [x], [x],
-    [10], [],  [],  [],  [],  [],  [],  [],  [],  [],  [x],
+    [1], [x], [x], [], [], [], [], [], [], [], [],
+    [2], [], [x], [x], [x], [], [], [], [], [], [],
+    [3], [], [x], [x], [x], [], [], [], [], [], [],
+    [4], [], [], [], [x], [], [], [], [], [], [],
+    [5], [], [], [], [], [x], [x], [], [], [], [],
+    [6], [], [], [], [], [], [x], [x], [], [], [],
+    [7], [], [], [], [], [], [], [x], [x], [x], [],
+    [8], [], [], [], [], [], [], [], [x], [x], [],
+    [9], [], [], [], [], [], [], [], [], [x], [x],
+    [10], [], [], [], [], [], [], [], [], [], [x],
   ),
   caption: [Activity schedule calendar from March to December 2026.],
 ) <tab_calendar>
