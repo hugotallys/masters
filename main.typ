@@ -107,102 +107,74 @@ This work aims to investigate and develop a retargeting-free framework for cross
 
 = Background
 
-/*
-* Books and miscellaneous sources
-* Introduction to Autonomous Mobile Robots (Intelligent Robotics and Autonomous Agents) 2nd Edition (Locomotion)
-  MORE BOOKS
-* What I need to discuss the subject ?
-*/
+This chapter introduces the concepts regarding how we represent virtual characters and animate them using a physics based approach guided by machine learning techniques. We begin describing how articulated characters are physically simulated, then formalize how reinforcement learning policies are used to control these characters, describing how motion capture data guides the learning process through reward engineering. Then we present adversarial motion priors as a principled alternative to handcrafted rewards, and finally introduce discrete latent representations as a mechanism for structuring the latent motion space.
 
-== Kinematics Based Animation
+== Physics-Based Character Animation
 
-/*
-  Recommended References:
+In traditional keyframe animation, the animator is responsible for specifying the exact position and orientation of every armature bone across time. In contrast, procedural physics-based animation shifts this responsibility to a physics based animation system. By explicitly modeling physical properties such as mass, gravity, and inertia, this system automatically calculates how objects should accelerate, collide, and come to rest. This approach allows natural, physically realistic movements to emerge organically from the simulation, freeing the animator from manually crafting complex environmental reactions.
 
-  Book: Computer Animation: Algorithms and Techniques by Rick Parent. (Note: This book is from outside the provided sources but was discussed in our previous conversation as the standard text for IK and 3D animation fundamentals).
+In physics-based character animation, virtual characters are modeled as articulated rigid body systems os simply _articulated figures_. An articulated figure can be thought of as a robot arm or a human arm made of a number of solid rods, referred to as links or bodies, which are connected to each other by joints that can move independently. When all the joints move, the overall motion of an articulated figure can be very complex @erleben_physics-based_2005. Each joint provides the connected segments with specific degrees of freedom: revolute joints allow rotation around a single axis, while ball joints permit rotation around multiple axes. The structural connectivity built into this hierarchy ensures that physical segments remain attached as the joints articulate. Every rigid segment is assigned dynamic properties such as, collision geometry, mass and inertia dictating its resistance to changes in linear and angular velocity.
 
-  Book (Optimization): Practical Methods of Optimization by Roger Fletcher or Practical Optimization by Phillip Gill et al., which are cited in foundational retargeting literature.
-*/
+To animate articulated figures, physics engines continuously integrate both internal joint torques and external forces—such as gravity, friction, and collision over discrete, minuscule time steps to update the character's full dynamic state. Relying purely on traditional kinematics-based approaches to manually calculate and keyframe these complex, frame-by-frame physical interactions would be an overwhelmingly time-consuming task and practically impossible for an human animator. By automatically resolving these intricate physical laws, the engine provide a crucial layer of abstraction that adds another level of realism and dynamism into the simulation.
 
-//Skeleton Hierarchies and Graphs: Explain how articulated figures are defined by a hierarchical structure of joints (nodes) and bones (edges), represented as Directed Acyclic Graphs (DAGs).
+In the case of articulated figures, movement is driven internally by actuating the mechanical joints using proportional-derivative (PD) controllers. Instead of applying raw forces directly, a PD controller calculates the specific continuous torque required to pull a joint toward a desired target state based on proportional (stiffness) and derivative (damping) gains: 
 
-Representing the body morphology of animals, humanoid robots or articulated characters can be achieved by using hierarchical linkages represented as Directed Acyclic Graphs (DAGs) or tree structures. In this graphical representation, the nodes correspond to individual joints or end-effectors, while the edges (or arcs) represent the rigid bones or armatures connecting them. The hierarchy is anchored by a single root node, typically located at the character's pelvis, which establishes the figure's global position and orientation in the coordinate system.
+$ tau = k_p dot.c (q_"target" - q_"current") - k_d dot.c dot(q)_"current" $
 
-The structural relationship between these elements is defined by kinematic chains, which are paths traversing from the root node down to the leaf nodes, such as the hands or feet. As the tree is traversed, transformations are passed down the hierarchy. For instance, a rotation applied to a parent node (e.g., a hip joint) automatically transforms all of its subsequent child nodes (e.g., the leg, knee, and foot), preserving the rigid structure of the limbs.
+In the context of RL, physics engines are essential because they enable the complex, embodied agent-environment interactions necessary to train generalizable intelligence. Rather than requiring the agent to learn a policy involving highly volatile mapping of raw mechanical torques, it is only tasked with outputting kinematic _intents_, the target joint positions or velocities. The PD controller then serves as a localized physical translator that handles the exact force computations, providing an important level of abstraction. This hierarchical separation dramatically accelerates learning speed and enhances training stability, as it allows the RL policy to optimize over a much smoother, lower-dimensional action space while the underlying controller ensures the execution remains physically compliant.
 
-// Forward and Inverse Kinematics (IK): Explain Forward Kinematics (calculating end-effector positions from joint angles) and Inverse Kinematics (calculating joint angles to reach a target position).
+Physics engines provide the foundational computations needed to generate high-complexity 3D training environments, with some frameworks like NVIDIA's PhysX/IsaacGym leveraging GPU acceleration to avoid CPU bottlenecks and significantly scale up parallel RL training. High-fidelity engines, like MuJoCo, also offer the physical accuracy required for robust, transferable RL policies. Selecting and deploying these specialized engines introduces a steep learning curve, particularly for researchers who lack deep domain expertise. The most computationally efficient and physically accurate simulators often suffer from poor usability, scattered documentation, and complex workflows for custom environment design @kaup_review_nodate. 
 
-Two primary approaches are considered when animating the hierarchical graph: *Forward Kinematics* (FK) and *Inverse Kinematics* (IK). Forward kinematics is the process of calculating the exact spatial position and orientation of an end-effector based on a given set of joint angles. By traversing the skeletal tree from the root downward and sequentially applying rotational matrices at each joint, the system computes the final posture of the entire body. While computationally straightforward, manually specifying the angle for every degree of freedom to reach a specific target makes FK an incredibly tedious trial-and-error process for animators.
-
-Conversely, Inverse Kinematics automates this process by calculating the necessary joint configurations required to position an end-effector at a specific, user-defined target coordinate. Instead of rotating joints manually, the user simply places the hand or foot where it needs to be, and the system mathematically solves for the internal pose. Because articulated figures like humans have many degrees of freedom (due to kinematic redundancy), IK problems are frequently under-constrained, meaning there are multiple valid joint configurations that can reach the same spatial target.
-
-To solve these complex IK problems where analytic solutions are impossible, classical approaches rely on iterative numerical methods, such as calculating the Jacobian matrix, a transformation that maps the velocities of the joint angles to the spatial velocities of the end-effector, allowing the system to incrementally "nudge" the joints until the limb reaches the target configuration within an acceptable tolerance.
-
-// Mathematical Optimization in Retargeting: Explain how early retargeting methods used spacetime constraints and numerical optimization to solve IK problems, enforcing rules like foot-ground contact.
-
-When transferring motion from one character to another with different bodily proportions, explicit mathematical optimization is heavily utilized to adapt the kinematics. A foundational classical method is the use of spacetime constraints, which formulates motion retargeting as a constrained numerical optimization problem solved simultaneously over the entire duration of the animation sequence. Unlike per-frame IK solvers that can introduce high-frequency jitter or "snapping" artifacts, the spacetime approach evaluates multiple frames at once to minimize an objective function—such as minimizing the magnitude of changes or energy consumption—ensuring that the resulting motion preserves the smooth frequency characteristics of the original performance.
-
-Within this optimization framework, strict kinematic rules are enforced as mathematical constraints, most notably to guarantee accurate foot-ground contact. If a source motion features a character walking, the optimization solver prevents physics-breaking artifacts by mathematically restricting the feet from sliding, skating, or floating horizontally when they should be firmly planted on the floor. Modern explicit retargeting tools—like Perpetual Humanoid Control (PHC) or ProtoMotionssimilarly rely on minimizing positional and orientational errors between the source and target bodies using differential IK solvers and gradient descent, often followed by a post-processing optimization step to adjust the root height and fix ground penetrations.
-
-Despite their historical success and mathematical precision, optimization-based kinematic retargeting methods frequently require significant manual tuning and heavy post-processing. Because these classical pipelines focus almost exclusively on geometric and positional constraints while ignoring dynamic forces like mass and momentum, they are prone to leaving physically infeasible artifacts—such as self-intersections or unnatural joint snapping—which can severely hinder the success of downstream physics-based tracking policies.
-
-== Physics-Based Animation
-
-/*
-  Recommended References:
-
-  Book: Rigid Body Dynamics Algorithms by Roy Featherstone. (External standard text from our previous conversation).
-
-  Book: Introduction to Autonomous Mobile Robots by Roland Siegwart. (Recommended by your advisor for locomotion basics).
-*/
-
-In traditional keyframe animation, the artist is responsible for specifying the exact position and orientation of every armature bone across time. In contrast, procedural physics-based animation shifts this responsibility to a physics based animation system. By explicitly modeling physical properties such as mass, gravity, and inertia, this system automatically calculates how objects should accelerate, collide, and come to rest. This approach allows natural, physically realistic movements to emerge organically from the simulation, freeing the animator from manually crafting complex environmental reactions.
-
-// Rigid Body Systems: Explain how simulated characters are modeled as articulated rigid bodies with specific masses, collision bounds, and degrees of freedom.
-
-In physics-based character animation, virtual humans and robots are typically modeled as articulated rigid body systems. These systems consist of a hierarchical tree of rigid segments (links) connected by joints, such as revolute (rotational) or prismatic (translational). Each joint provides the connected segments with specific degrees of freedom, dictating the exact range and axes of allowable movement. Because the structural connectivity is built directly into the hierarchy, the physical segments stay attached automatically as the joints articulate.
-
-To accurately simulate how these characters react to forces, each rigid segment is assigned specific dynamic properties. Every body part has a defined mass, a center of mass, and an inertia tensor. These properties dictate the segment's resistance to changes in linear and angular velocity. Furthermore, characters are equipped with collision bounds, which can range from simple bounding spheres and boxes to complex polyhedra. These bounds act as the physical shell of the character, allowing the system to detect overlaps and compute the necessary impulse forces to prevent the character from penetrating the ground or passing through other objects (clipping) .
-
-// Physics Simulation and Actuation: Detail how physics engines (e.g., MuJoCo, Isaac Gym) simulate gravity, friction, and collisions, and how joints are actuated using Proportional-Derivative (PD) controllers to apply torques.
-
-To bring these rigid body systems to life, researchers and animators rely on physics engines, such as MuJoCo and NVIDIA PhysX. These engines calculate the continuous time-evolution of the environment by simulating external forces like gravity, friction, and viscous drag. When the character's collision bounds intersect with the environment, the physics engine computes impact responses and contact normals, calculating the exact impulse forces required to push the objects apart or simulate resting contact. By integrating these forces and accelerations over tiny, discrete time steps, the engine automatically updates the character's position and velocity, generating highly realistic interactions.
-
-In these simulations, joints are typically actuated using proportional-derivative (PD) controllers. The PD controller acts essentially as a localized spring-damper system, calculating the necessary torque based on the error between the current joint rotation and the target rotation, scaled by a proportional stiffness gain and a derivative damping gain. This method abstracts away low-level physics nuances, providing stable, direct-drive control over the simulated character movement.
-
-// The Embodiment Gap: Discuss the morphological discrepancies (bone length, mass distribution, actuation limits) that make physical retargeting difficult.
-
-Even though simulating a character is mechanically straightforward, transferring motion across their morphological structures introduces a challenge known as the _embodiment gap_. When source and target characters share significant morphological discrepancies such as varying bone lengths, disparate joint ranges of motion, distinct overall body shapes, and fundamentally different mass distributions, a posture or movement that is perfectly balanced for the former character may instantly cause a heavier or differently proportioned latter character to lose its center of mass and fall over.
-
-Traditional motion retargeting—which often just blindly copies joint angles or relies purely on kinematic mapping—tends to produce movements that are physically infeasible for the target. To successfully cross the embodiment gap, modern frameworks must go beyond matching visual poses and actively account for the rigid body dynamics, ensuring that the retargeted motion respects the physical constraints and mass distribution of the specific target morphology.
+On the other end of the spectrum, while consumer game engines such as Unity offer highly accessible development workflows, they frequently exhibit limited parallelization scalability and insufficient simulation fidelity, which ultimately compromises the reproducibility of reinforcement learning results. Consequently, choosing an appropriate physics engine requires researchers to navigate an acute trade-off between software usability, computational throughput, and physical accuracy. Consequently, selecting an appropriate physics engine requires researchers to carefully balance development usability, computational throughput, and physical accuracy.
 
 == Reinforcement Learning for Continuous Control
 
-/*
-References:
-  Book: Reinforcement Learning: An Introduction by Richard S. Sutton and Andrew G. Barto. This is the definitive textbook on the subject and is heavily cited by the state-of-the-art physics-based RL papers in your sources.
+The problem of controlling a physically simulated character is formally defined as a Markov Decision Process (MDP). At each discrete time step $t$, an agent observes the state of the environment $s_t$ and selects a continuous action $a_t$ according to a policy $pi$. Following the generalized formulation of policy-based reinforcement learning, a policy is parameterized by a dedicated parameter vector $theta in RR^(d')$. This policy maps a given state to a probability distribution or density over the action space, expressed mathematically as:
 
-  DRL HAndbook etc. ...
+$ pi(a | s, theta) = Pr(A_t = a | S_t = s, theta_t = theta) $
 
-*/
+The environment transitions to a new state $s_(t+1)$ according to its internal physics dynamics and returns a scalar reward $r_t$ evaluating the desirability of that transition. The agent's objective is to find policy parameters $theta^*$ that maximize the expected cumulative discounted return:
 
-// Markov Decision Processes (MDP): Define the RL framework where an agent observes a state st takes an action at according to a policy π, and receives a reward rt.
+$ J(theta) = bb(E)_(pi_theta) [ sum_(t=0)^T gamma^t r_t ] $ 
 
-In the context of controlling a physically simulated character, its motion synthesis is formally defined as a RL problem governed by a Markov Decision Process. Within this framework, an agent observes the state of the environment $s_t$ at a discrete time-step $t$ and takes a continuous action $a_t$ sampled from a control policy $pi(a_t|s_t)$. The environment then transitions to a new state $s_{t+1}$ based on its internal physical dynamics and returns a scalar reward $r_t$ evaluating the desirability of that specific transition. The ultimate goal of the agent is to learn optimal policy parameters that maximize its expected cumulative discounted return over the simulation horizon.
+where $gamma in [0, 1)$ is the discount factor and $T$ is the episode horizon.
+
+Unlike traditional action-value methods that evaluate and select actions based on estimated state-action utilities, policy gradient architectures learn a direct mapping capable of selecting actions without actively consulting a value function at the time of execution. The agent optimizes the parameter vector by evaluating the gradient of a scalar performance measure $J(theta)$, systematically updating the weights via stochastic gradient ascent:
+
+$ theta_(t+1) = theta_t + alpha nabla J(theta_t) $
+
+For continuous or high-dimensional action spaces, explicitly mapping individual action probabilities becomes intractable; instead, the policy parameterization is designed to learn the essential statistics of a continuous probability distribution. For instance, a continuous policy can be parameterized as a normal (Gaussian) density function where the mean $mu(s, theta)$ and standard deviation $sigma(s, theta)$ are governed by parametric function approximators (Sutton & Barto, 2018, Ch. 13.7):
+
+$ pi(a | s, theta) = 1 / (sigma(s, theta) sqrt(2 pi)) exp(- (a - mu(s, theta))^2 / (2 sigma(s, theta)^2)) $
+
+To optimize this landscape efficiently, actor-critic frameworks decouple the learning system into an "actor" which encapsulates the parameterized policy for action selection, and a "critic" which approximates a state-value function $hat(v)(s, w)$ to evaluate those selections. By utilizing temporal difference (TD) bootstrapping, where value estimates are updated based on the estimated values of subsequent states, the critic dramatically reduces variance issues that arises in standard Monte Carlo (MC) rollouts.
+
+// ADD HERE FIGURE OF ACTOR CRITIC DIAGRAM FROM BARTO & SUTTON
+
+// --- BEGIN 
+
+== Proximal Policy Optimization Algorithms
 
 To optimize these highly complex continuous control problems, modern physics-based animation pipelines predominantly employ Proximal Policy Optimization (PPO), an actor-critic algorithm. PPO utilizes a dual-network architecture: an actor network that outputs the policy distribution to select actions, and a critic network (value function) that evaluates the expected return of the current state to reduce variance and guide the actor during training.
 
-// In our latent-driven two-stage framework, **PPO is specifically used to train an initial "oracle" teacher policy in simulation**. This teacher exploits privileged simulator information to master the physical dynamics, which subsequently provides the precise ground-truth supervision required to train the final deployable, latent-driven student policy.
+In deep reinforcement learning (DRL), the parameter vector $theta$ is specialized to encompass the unified, flattened vector of all connection weights and biases across a deep artificial neural network. Under this paradigm, the parametric function approximators defining the Gaussian policy's mean $mu(s, theta)$ and standard deviation $sigma(s, theta)$ are mapped directly through deep neural layers[cite: 35, 433].
 
-// State and Action Spaces: Explain how proprioceptive states (joint positions, velocities, root orientation) and target actions (target angles for PD controllers) are formulated for humanoid control.
+While classical policy gradient methods rely on a linear stochastic gradient ascent step [cite: 11, 12], tuning a fixed step size $alpha^theta$ remains a significant operational bottleneck because the ideal step magnitude varies heavily depending on the range of rewards and the specific parameterization of the policy[cite: 261]. Unconstrained gradient steps in a high-dimensional neural network parameter space risk causing radical, irreversible drops in action probabilities, leading to deterministic collapse or highly unstable exploration loops[cite: 26]. 
 
-For humanoid whole-body control, the state space $s_t$ must comprehensively capture the physical configuration of the character within the simulation. This is primarily achieved through proprioceptive states, which encompass the root's translation, global orientation (roll, pitch, yaw), linear and angular velocities, alongside the local positions and velocities of all individual joints.
+Modern DRL frameworks, such as Proximal Policy Optimization (PPO), maintain the foundational actor-critic architecture [cite: 15, 472] and the underlying continuous Gaussian policy parameterization [cite: 431] established by Sutton and Barto. However, PPO specializes the optimization step by substituting the standard policy gradient with a clipped surrogate objective function. This optimization constraint effectively bounds the permissible policy update step, preventing the catastrophic policy shifts common to unconstrained neural architectures and ensuring stable, sample-efficient weight vector optimization within complex physical simulations.
 
-// In a latent-driven framework like ours, the state observed by the final deployment policy is deliberately restricted. It is augmented with the **abstract motion latent representation**, serving as a semantic intent or goal signal, as well as a history of recent proprioceptive observations to compensate for the lack of explicit reference trajectories and privileged environmental data.
+// For the continuous, high-dimensional action spaces encountered in character control, the dominant optimization algorithm is Proximal Policy Optimization (PPO) (Schulman et al., 2017). PPO is an actor-critic method that maintains two neural networks: an actor network $\pi_\theta$ that outputs a Gaussian distribution over actions, and a critic network $V_\phi(s_t)$ that estimates the expected return from state $s_t$. The critic's value estimates are used to compute advantage estimates $\hat{A}_t$ — measuring how much better an action was compared to the average — via Generalized Advantage Estimation (Schulman et al., 2016).
 
-// On the output side, rather than having a neural network to compute raw actuator torques directly—which is highly unstable
+The key innovation of PPO is a clipped surrogate objective that prevents destructively large policy updates (Schulman et al., 2017):
 
-The action space $a_t$ is formulated to specify target joint angles (or positions) for Proportional-Derivative (PD) controllers stationed at each simulated joint. By abstracting away low-level physics nuances like local damping, the use of PD targets significantly improves the learning speed and stability of the RL policy, providing robust, direct-drive control over the complex humanoid morphology.
+// $$L^{\text{CLIP}}(\theta) = \mathbb{E}_t \left[ \min \left( r_t(\theta) \hat{A}_t, ; \text{clip}(r_t(\theta), 1 - \epsilon, 1 + \epsilon) \hat{A}_t \right) \right]$$
+
+// where $r_t(\theta) = \frac{\pi_\theta(a_t | s_t)}{\pi_{\theta_{\text{old}}}(a_t | s_t)}$ is the probability ratio between the current and previous policies, and $\epsilon$ (typically 0.2) bounds the update magnitude. This clipping mechanism provides a practical approximation of the KL-divergence constraint used in Trust Region Policy Optimization (Schulman et al., 2015), ensuring that the policy improves without catastrophic collapse.
+
+The design of the reward function $r_t$ is where the critical differences between methods emerge, and is the subject of the following two sections.
+
+
+// -- END
 
 // Reward Design (Imitation vs. Task): Explain how RL policies are trained to imitate reference motions (tracking joint positions and velocities) while simultaneously achieving tasks (like moving to a target).
 
@@ -297,17 +269,17 @@ As machine learning advanced, the focus shifted from purely kinematic-optimizati
 
 // 2020–2024: The Shift to Latent Space Alignment
 
-The advent of deep generative models introduced latent space alignment to effectively handle structural disparities between characters. In @aberman_skeleton_aware_2020 it was developed a skeleton-aware neural network capable of unpaired motion retargeting between homeomorphic skeletons. Their method encodes structurally different motions into a shared deep latent space corresponding to a common primal skeleton. Expanding on this concept, in @yao_moconvq_2024 it was proposed the _MoConVQ_ framework, which learns scalable, discrete motion representations directly from extensive unstructured datasets. By combining these latent embeddings with model-based RL, MoConVQ provides a unified and intuitive interface for a variety of physics-based control tasks.
+The advent of deep generative models introduced latent space alignment to effectively handle structural disparities between characters. In aberman_skeleton_aware_2020 it was developed a skeleton-aware neural network capable of unpaired motion retargeting between homeomorphic skeletons. Their method encodes structurally different motions into a shared deep latent space corresponding to a common primal skeleton. Expanding on this concept, in @yao_moconvq_2024 it was proposed the _MoConVQ_ framework, which learns scalable, discrete motion representations directly from extensive unstructured datasets. By combining these latent embeddings with model-based RL, MoConVQ provides a unified and intuitive interface for a variety of physics-based control tasks.
 
 // 2025: Advanced Alignment, Robust Tracking, and Latent-Driven Control In 2025, rapid advancements expanded across all control paradigms to bridge the embodiment gap between humans and complex robots:
 
 // Latent Space Alignment:
 
-In @gat_anytop_2025 it was presented AnyTop, a diffusion model capable of generating animations for completely non-homeomorphic skeletons (from bipeds to arthropods) by integrating topological information into a transformer-based de-noising network. MoReFlow was introduced by @kim_moreflow_2025, an unsupervised framework utilizing flow matching to align the tokenized latent motion spaces of morphologically distinct characters. To combine efficiency with physical feasibility, it was proposed by @chen_implicit_2025 Implicit Kinodynamic Motion Retargeting (IKMR), which aligns motion topologies via a dual encoder-decoder and subsequently fine-tunes the decoder using imitation learning to produce physically viable trajectories.
+In gat_anytop_2025 it was presented AnyTop, a diffusion model capable of generating animations for completely non-homeomorphic skeletons (from bipeds to arthropods) by integrating topological information into a transformer-based de-noising network. MoReFlow was introduced by kim_moreflow_2025, an unsupervised framework utilizing flow matching to align the tokenized latent motion spaces of morphologically distinct characters. To combine efficiency with physical feasibility, it was proposed by chen_implicit_2025 Implicit Kinodynamic Motion Retargeting (IKMR), which aligns motion topologies via a dual encoder-decoder and subsequently fine-tunes the decoder using imitation learning to produce physically viable trajectories.
 
 // Optimization & Physics-Based RL:
 
-Classical optimization methods were re-evaluated to aid modern RL tracking. In "Retargeting Matters," it was demonstred by @araujo_retargeting_2025 that while RL policies can sometimes overcome retargeting artifacts, generating high-quality reference motions via robust inverse kinematics optimization (their GMR method) significantly improves the success rate of downstream humanoid tracking policies. Parallel to this, in @chen_gmt_2025 it was introduced General Motion Tracking (GMT), leveraging DRL on human reference data to build robust, whole-body controllers capable of managing a highly diverse set of humanoid locomotion skills.
+Classical optimization methods were re-evaluated to aid modern RL tracking. In "Retargeting Matters," it was demonstred by araujo_retargeting_2025 that while RL policies can sometimes overcome retargeting artifacts, generating high-quality reference motions via robust inverse kinematics optimization (their GMR method) significantly improves the success rate of downstream humanoid tracking policies. Parallel to this, in @chen_gmt_2025 it was introduced General Motion Tracking (GMT), leveraging DRL on human reference data to build robust, whole-body controllers capable of managing a highly diverse set of humanoid locomotion skills.
 
 // Latent-Driven Control (Retargeting-Free):
 // Real need of this here ? Is there any other exmaple that uses retargeting free approach ?
@@ -375,4 +347,4 @@ The following tables detail the planned execution of tasks in order to fulfill t
   caption: [Activity schedule calendar from March to December 2026.],
 ) <tab_calendar>
 
-#bibliography("works.bib", style: "apa")
+#bibliography("zotero.bib", style: "apa")
