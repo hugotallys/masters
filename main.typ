@@ -177,11 +177,30 @@ The root cause is not a failure of the algorithm but a difficulty of reward engi
 
 == Motion Imitation via Reward Engineering
 
-// Reward Design (Imitation vs. Task): Explain how RL policies are trained to imitate reference motions (tracking joint positions and velocities) while simultaneously achieving tasks (like moving to a target).
+Early approaches to guiding a physics-based character toward natural movement used motion imitation through handcrafted reward functions. In this paradigm, a reference motion clip, typically obtained from motion capture of a real animal (Zhang et al., 2018), provides a frame-by-frame target trajectory. The reward function measures how closely the simulated character's state matches the reference at each time step, producing a scalar incentive for the policy to reproduce the demonstrated motion.
 
-In physics-based motion synthesis, reward functions must meticulously engineered to balance two competing objectives: faithfully imitating a reference motion and successfully accomplishing a specific environmental task. In a imitation objective approach, the simulated character is encouraged to match the precise kinematic characteristics of the reference motion data at each time interval. This is typically achieved by computing exponential penalties for deviations in joint orientations, joint velocities, end-effector positions, and center-of-mass trajectories. By heavily rewarding tight tracking of these kinematic features, the policy learns to reproduce the nuanced style, fluidity, and coordinated balance of the original reference data.
+The standard formulation, established by in the _DeepMimic_ framework, decomposes the imitation reward $r^I_t$ into a weighted sum of per frame error terms:
 
-Conversely, the task objective incentivizes the agent to fulfill high-level goals, such as moving towards a specific target heading, striking an object, or traversing irregular terrain. Because blindly imitating a reference motion is often insufficient to accomplish complex or novel tasks, the total reward is calculated as a weighted sum of both the imitation and task objectives. This dual-reward structure provides the RL policy with the flexibility to deviate slightly from the original reference motion when necessary, allowing it to naturally develop new, physically valid strategies to satisfy the task constraints while preserving the overarching stylistic intent of the source data.
+$ r^I_t = w^p_t dot r^p_t + w^v_t dot r^v_t + w^e_t dot r^e_t + w^c_t dot r^c_t $
+
+Each component penalizes a specific type of deviation from the reference motion data: $r_p$ measures joint orientation error, $r_v$ measures joint velocity error, $r_e$ measures end-effector position error (the spatial distance between the character's feet and the reference foot positions) and $r_c$ measures center-of-mass trajectory error, each term begin formulated as an exponential decay of the squared error. For instance, in order to compute the total joint orientation reward the author uses
+
+$ cases(
+  w^p_t = 0.65,
+  r^p_t = exp[-alpha_p (sum_j ||hat(q)^j_t minus.o q^j_t||^2)]
+) $
+
+where $alpha_p = 2$ is a _sharpness_ coefficient (exponential scale factor), $q^j_t$ and $hat(q)^j_t$ represent the orientations of the $j$th joint from  the simulated character and reference motion respectively, $q_1 minus.o q_2$ denotes the quaternion difference and $||q||$ computes the scalar rotation of a quaternion about its axis in radians @peng_deepmimic_2018.
+
+To enable goal-directed behavior beyond pure imitation, the total reward combines the imitation objective with a task reward $r^G_t$
+
+$ r_t = omega^I dot.c r^I_t + omega^G dot.c r^G_t $
+
+with $omega^I$ and $omega^G$ being their respective weights.
+
+The task reward incentivizes high-level objectives such as tracking a commanded velocity, reaching a target position, or navigating terrain. This dual-reward structure allows the policy to deviate from the reference motion when necessary to accomplish the task, while maintaining the stylistic character of the original motion data.
+
+Despite its demonstrated success, reward engineered motion imitation suffers from several documented limitations @peng_amp_2021. First, the reward weights ($w_p, w_v, w_e, w_c$) and sharpness coefficients ($alpha_p, alpha_v, alpha_e, alpha_c$) require careful manual tuning for each motion skill: small perturbations can cause training to diverge or converge to unnatural local minima. Second, each reference clip typically requires a separately trained policy, since the per-frame tracking objective binds the policy tightly to one specific trajectory in which case scaling to large motion datasets demands significant additional machinery for motion selection and blending. Third, the rigid per-frame tracking penalizes physically valid but stylistically different solutions, producing brittle policies that cannot smoothly transition between distinct skills. Finally, when applied to diverse motion datasets containing multiple gaits, the tracking framework requires explicit mechanisms for selecting which clip the character should follow at any given moment, adding engineering complexity for interactivity which scales poorly with dataset size.
 
 == Motion Retargeting
 
