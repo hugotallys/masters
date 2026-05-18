@@ -129,11 +129,11 @@ On the other end of the spectrum, while consumer game engines such as Unity offe
 
 == Reinforcement Learning for Continuous Control
 
-The problem of controlling a physically simulated character is formally defined as a Markov Decision Process (MDP). At each discrete time step $t$, an agent observes the state of the environment $s_t$ and selects a continuous action $a_t$ according to a policy $pi$. Following the generalized formulation of policy-based reinforcement learning, a policy is parameterized by a dedicated parameter vector $theta in RR^(d')$. This policy maps a given state to a probability distribution or density over the action space, expressed mathematically as:
+The problem of controlling a physically simulated character is formally defined as a Markov Decision Process (MDP). At each discrete time step $t$, an agent observes the state of the environment $s_t$ and selects a continuous action $a_t$ according to a policy $pi$. Following the generalized formulation of policy-based reinforcement learning, a policy is parameterized by a dedicated parameter vector $theta in RR^(d')$. This policy maps a given state to a probability distribution over the action space:
 
 $ pi(a | s, theta) = Pr(A_t = a | S_t = s, theta_t = theta) $
 
-The environment transitions to a new state $s_(t+1)$ according to its internal physics dynamics and returns a scalar reward $r_t$ evaluating the desirability of that transition. The agent's objective is to find policy parameters $theta^*$ that maximize the expected cumulative discounted return:
+The environment transitions to a new state $s_(t+1)$ according to its internal physics dynamics and returns a scalar reward $r_t$ evaluating the desirability of that transition. The agent's objective is to find policy parameters $theta^*$ that maximize the expected cumulative discounted return ($R_t$):
 
 $ J(theta) = bb(E)_(pi_theta) [ sum_(t=0)^T gamma^t r_t ] $ 
 
@@ -141,9 +141,11 @@ where $gamma in [0, 1)$ is the discount factor and $T$ is the episode horizon.
 
 Unlike traditional action-value methods that evaluate and select actions based on estimated state-action utilities, policy gradient architectures learn a direct mapping capable of selecting actions without actively consulting a value function at the time of execution. The agent optimizes the parameter vector by evaluating the gradient of a scalar performance measure $J(theta)$, systematically updating the weights via stochastic gradient ascent:
 
-$ theta_(t+1) = theta_t + alpha nabla J(theta_t) $
+$ theta_(t+1) = theta_t + alpha nabla hat(J(theta_t)) $
 
-For continuous or high-dimensional action spaces, explicitly mapping individual action probabilities becomes intractable; instead, the policy parameterization is designed to learn the essential statistics of a continuous probability distribution. For instance, a continuous policy can be parameterized as a normal (Gaussian) density function where the mean $mu(s, theta)$ and standard deviation $sigma(s, theta)$ are governed by parametric function approximators (Sutton & Barto, 2018, Ch. 13.7):
+where $hat(J(theta_t))$ is a stochastic estimate whose expectation approximates the gradient of the performance measure with respect to its argument $theta_t$.
+
+For continuous or high-dimensional action spaces, explicitly mapping individual action probabilities becomes intractable. Instead, the policy parameterization is designed to learn the essential statistics of a continuous probability distribution. For instance, a continuous policy can be parameterized as a normal (Gaussian) density function where the mean $mu(s, theta)$ and standard deviation $sigma(s, theta)$ are governed by parametric function approximators (Sutton & Barto, 2018, Ch. 13.7):
 
 $ pi(a | s, theta) = 1 / (sigma(s, theta) sqrt(2 pi)) exp(- (a - mu(s, theta))^2 / (2 sigma(s, theta)^2)) $
 
@@ -155,26 +157,25 @@ To optimize this landscape efficiently, actor-critic frameworks decouple the lea
 
 == Proximal Policy Optimization Algorithms
 
-To optimize these highly complex continuous control problems, modern physics-based animation pipelines predominantly employ Proximal Policy Optimization (PPO), an actor-critic algorithm. PPO utilizes a dual-network architecture: an actor network that outputs the policy distribution to select actions, and a critic network (value function) that evaluates the expected return of the current state to reduce variance and guide the actor during training.
+For the continuous, high-dimensional action spaces encountered in character control, Proximal Policy Optimization (PPO) @schulman_proximal_2017 has become the dominant algorithm across both robotics and physics-based animation research, precisely because it is stable enough to train deep neural networks over long horizons without collapsing, yet simple enough to implement reliably without problem-specific tuning. PPO is an actor-critic method that maintains two separate neural networks in an episodic learning setting. The actor network defines our policy $pi_theta$ mapping the current state to a parametrized gaussian distribution over continuous actions from which joint targets are sampled. The critic network $V_phi (s_t)$ is a value estimator that learns to predict the expected cumulative return from any given state, serving as a learned baseline. The critic's predictions are used to compute _advantage estimates_ $hat(A_t)$
 
-In deep reinforcement learning (DRL), the parameter vector $theta$ is specialized to encompass the unified, flattened vector of all connection weights and biases across a deep artificial neural network. Under this paradigm, the parametric function approximators defining the Gaussian policy's mean $mu(s, theta)$ and standard deviation $sigma(s, theta)$ are mapped directly through deep neural layers[cite: 35, 433].
+$ hat(A)_t = R_t - V_phi (s_t) $
 
-While classical policy gradient methods rely on a linear stochastic gradient ascent step [cite: 11, 12], tuning a fixed step size $alpha^theta$ remains a significant operational bottleneck because the ideal step magnitude varies heavily depending on the range of rewards and the specific parameterization of the policy[cite: 261]. Unconstrained gradient steps in a high-dimensional neural network parameter space risk causing radical, irreversible drops in action probabilities, leading to deterministic collapse or highly unstable exploration loops[cite: 26]. 
+which measures how much better or worse the action actually taken was compared to what the critic expected on average.
 
-Modern DRL frameworks, such as Proximal Policy Optimization (PPO), maintain the foundational actor-critic architecture [cite: 15, 472] and the underlying continuous Gaussian policy parameterization [cite: 431] established by Sutton and Barto. However, PPO specializes the optimization step by substituting the standard policy gradient with a clipped surrogate objective function. This optimization constraint effectively bounds the permissible policy update step, preventing the catastrophic policy shifts common to unconstrained neural architectures and ensuring stable, sample-efficient weight vector optimization within complex physical simulations.
+A positive advantage means the action led to better-than-expected outcomes and should be reinforced whereas a negative advantage means it should be avoided. The key innovation of PPO is a _clipped surrogate objective_ that prevents destructively large policy updates:
 
-// For the continuous, high-dimensional action spaces encountered in character control, the dominant optimization algorithm is Proximal Policy Optimization (PPO) (Schulman et al., 2017). PPO is an actor-critic method that maintains two neural networks: an actor network $\pi_\theta$ that outputs a Gaussian distribution over actions, and a critic network $V_\phi(s_t)$ that estimates the expected return from state $s_t$. The critic's value estimates are used to compute advantage estimates $\hat{A}_t$ — measuring how much better an action was compared to the average — via Generalized Advantage Estimation (Schulman et al., 2016).
+$ L^"CLIP"(theta) = bb(E)_t [ min(r_t(theta) hat(A)_t, "clip"(r_t(theta), 1 - epsilon, 1 + epsilon) hat(A)_t) ] $
 
-The key innovation of PPO is a clipped surrogate objective that prevents destructively large policy updates (Schulman et al., 2017):
+where $r_t (theta) = (pi_theta (a_t | s_t)) / (pi_(theta_"old") (a_t | s_t))$ is probability ratio between the updated and previous policy and $epsilon$ (typically 0.2) bounds the update magnitude. This clipping mechanism acts as a conservative guardrail on how far the policy is permitted to move in a single update step avoiding unconstrained gradient steps that risk causing irreversible drops in action probabilities, leading to deterministic policy collapse or highly unstable exploration @schulman_trust_2017. 
 
-// $$L^{\text{CLIP}}(\theta) = \mathbb{E}_t \left[ \min \left( r_t(\theta) \hat{A}_t, ; \text{clip}(r_t(\theta), 1 - \epsilon, 1 + \epsilon) \hat{A}_t \right) \right]$$
+Despite this stability, controlling characters trained with PPO faces a fundamental perceptual problem when applied to articulated figures. The algorithm is agnostic to what natural _motion intent_ looks like as it optimizes whatever scalar reward it is given. When that reward is defined purely in terms of task completion such as reach a target velocity, navigate the terrain or stay upright, the policy discovers physically valid solutions that satisfy the objective while looking somewhat awkward to our common sense. Joints snap to extreme angles, limbs swing in mechanically efficient but biologically implausible patterns, and transitions between gaits produce the sudden, discontinuous lurches characteristic of the uncanny valley. 
 
-// where $r_t(\theta) = \frac{\pi_\theta(a_t | s_t)}{\pi_{\theta_{\text{old}}}(a_t | s_t)}$ is the probability ratio between the current and previous policies, and $\epsilon$ (typically 0.2) bounds the update magnitude. This clipping mechanism provides a practical approximation of the KL-divergence constraint used in Trust Region Policy Optimization (Schulman et al., 2015), ensuring that the policy improves without catastrophic collapse.
+The root cause is not a failure of the algorithm but a difficulty of reward engineering: without an explicit signal encoding how a character should move, PPO has no basis for preferring natural motion over any other physically feasible solution. Designing reward functions that fully capture motion intent is notoriously difficult and specific to each problem. This is the central limitation that motion imitation methods, discussed in the following section, are designed to address.
 
-The design of the reward function $r_t$ is where the critical differences between methods emerge, and is the subject of the following two sections.
+// PPO DIAGRAM FIGURE HERE
 
-
-// -- END
+== Motion Imitation via Reward Engineering
 
 // Reward Design (Imitation vs. Task): Explain how RL policies are trained to imitate reference motions (tracking joint positions and velocities) while simultaneously achieving tasks (like moving to a target).
 
