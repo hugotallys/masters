@@ -157,7 +157,7 @@ To optimize this landscape efficiently, actor-critic frameworks decouple the lea
 
 == Proximal Policy Optimization Algorithms
 
-For the continuous, high-dimensional action spaces encountered in character control, Proximal Policy Optimization (PPO) @schulman_proximal_2017 has become the dominant algorithm across both robotics and physics-based animation research, precisely because it is stable enough to train deep neural networks over long horizons without collapsing, yet simple enough to implement reliably without problem-specific tuning. PPO is an actor-critic method that maintains two separate neural networks in an episodic learning setting. The actor network defines our policy $pi_theta$ mapping the current state to a parametrized gaussian distribution over continuous actions from which joint targets are sampled. The critic network $V_phi (s_t)$ is a value estimator that learns to predict the expected cumulative return from any given state, serving as a learned baseline. The critic's predictions are used to compute _advantage estimates_ $hat(A_t)$
+For the continuous, high-dimensional action spaces encountered in character control, Proximal Policy Optimization (PPO) @schulman_proximal_2017 has become the dominant algorithm across both robotics and physics-based animation research, precisely because it is stable enough to train deep neural networks over long horizons without collapsing, yet simple enough to implement and tune. PPO is an actor-critic method that maintains two separate neural networks in an episodic learning setting. The actor network defines our policy $pi_theta$ mapping the current state to a parametrized gaussian distribution over continuous actions from which joint targets are sampled. The critic network $V_phi (s_t)$ is a value estimator that learns to predict the expected cumulative return from any given state, serving as a learned baseline. The critic's predictions are used to compute _advantage estimates_ $hat(A_t)$
 
 $ hat(A)_t = R_t - V_phi (s_t) $
 
@@ -173,7 +173,12 @@ Despite this stability, controlling characters trained with PPO faces a fundamen
 
 The root cause is not a failure of the algorithm but a difficulty of reward engineering: without an explicit signal encoding how a character should move, PPO has no basis for preferring natural motion over any other physically feasible solution. Designing reward functions that fully capture motion intent is notoriously difficult and specific to each problem. This is the central limitation that motion imitation methods, discussed in the following section, are designed to address.
 
-// PPO DIAGRAM FIGURE HERE
+#figure(
+  image("figures/ppo.png", width: 80%),
+  caption: [
+    PPO lagorithm  strucutre CHANGE CAPTIONS AND FIGURE
+  ],
+) <fig:ppo_structure>
 
 == Motion Imitation via Reward Engineering
 
@@ -202,35 +207,34 @@ The task reward incentivizes high-level objectives such as tracking a commanded 
 
 Despite its demonstrated success, reward engineered motion imitation suffers from several documented limitations @peng_amp_2021. First, the reward weights ($w_p, w_v, w_e, w_c$) and sharpness coefficients ($alpha_p, alpha_v, alpha_e, alpha_c$) require careful manual tuning for each motion skill: small perturbations can cause training to diverge or converge to unnatural local minima. Second, each reference clip typically requires a separately trained policy, since the per-frame tracking objective binds the policy tightly to one specific trajectory in which case scaling to large motion datasets demands significant additional machinery for motion selection and blending. Third, the rigid per-frame tracking penalizes physically valid but stylistically different solutions, producing brittle policies that cannot smoothly transition between distinct skills. Finally, when applied to diverse motion datasets containing multiple gaits, the tracking framework requires explicit mechanisms for selecting which clip the character should follow at any given moment, adding engineering complexity for interactivity which scales poorly with dataset size.
 
-== Motion Retargeting
+== Adversarial Motion Priors
 
-/*
-References:
+Adversarial Motion Priors (AMP), introduced by @peng_amp_2021, replace the handcrafted imitation reward with a learned discriminator that automatically captures the statistical characteristics of the reference motion data. The central insight is that natural motion can be defined not by explicit kinematic metrics but by a distribution: the set of state transitions that "look like" the reference data. This approach draws on the adversarial training framework from Generative Adversarial Networks (Goodfellow et al., 2014) and its application to imitation learning in Generative Adversarial Imitation Learning (Ho & Ermon, 2016).
 
-Seminal Papers (Acting as texts for this niche): Gleicher's Retargetting motion to new characters for historical optimization context, and Skeleton-aware networks for deep motion retargeting by Aberman et al. for the introduction of homeomorphic graph retargeting.
-*/
+A discriminator network $D_psi (s_t, s_{t+1})$ is trained to distinguish state transition pairs drawn from the reference motion dataset from those generated by the RL policy during simulation. The discriminator is optimized with a least-squares objective augmented by a gradient penalty (Gulrajani et al., 2017) for training stability:
 
-// Homomorphology (Intra-Structural) Retargeting: Explain methods that transfer motion between characters with the same skeletal topology but different bone proportions (e.g., human-to-humanoid).
+$ L_D = bb(E)_((s, s') tilde cal(M)) [ (D psi(s, s') - 1)^2 ] + bb(E)_((s, s') tilde pi) [ (D psi(s, s') + 1)^2 ] + lambda_"gp" dot bb(E) [ | nabla_psi D_psi |^2 ] $
 
-// Cross-Morphology (Inter-Structural) Retargeting: Define the challenge of transferring motion between fundamentally different skeletons (e.g., biped to quadruped, or completely arbitrary topologies like multi-legged insects).
+where $cal(M)$ denotes the reference motion dataset, $pi$ denotes the current policy's rollout distribution, and the gradient penalty coefficient $lambda_"gp"$ is the most critical hyperparameter for training stability.
 
-// Artifacts and Limitations: Detail the common failure modes of direct joint mapping, such as self-penetration, foot sliding, and the loss of semantic meaning when topologies diverge.
+The discriminator's output is converted into a style reward signal for the RL policy, approaching $1$ when the policy produces transitions that the discriminator classifies as similar to the reference data, and $0$ for transitions that deviate from the reference distribution:
 
-Intra-structural retargeting (Homomorphology) refers to the transfer of motion between characters that share the exact same skeletal topology, i.e they have an identical hierarchical blueprint and equivalent kinematic chains—but differ in their bone proportions, overall scale, or body shape. The quintessential example is mapping human motion capture data onto a humanoid robot. Because the source and the target can be represented by equivalent or homeomorphic graphs, there is a direct, one-to-one anatomical correspondence between their parts, such as mapping a human elbow directly to a robot elbow.
+$ r_"style" (s_t, s_(t+1)) = max(0, 1 - 0.25 dot (D_psi (s_t, s_(t+1)) - 1)^2) $
 
-Despite operating on identical topological structures, homomorphology retargeting still faces the _embodiment gap_ problem. A human and a humanoid robot might share the same number of limbs, but their mass distributions, center of gravity, and joint ranges of motion differ drastically. Consequently, even when explicit kinematic retargeters perfectly calculate joint angles that match the source poses, the resulting motion often fails to account for the physical constraints of the specific robotic hardware.
+Critically, the AMP discriminator operates on unstructured motion clip collections. It receives randomly sampled transition pairs $(s_t, s_(t+1))$ from the dataset without requiring clip boundaries, temporal annotations, or skill labels. This is a fundamental advantage over _DeepMimic_ style since the policy is not penalized for being at the wrong frame of a specific clip, but rather for producing transitions that fall outside the statistical distribution of all reference motions. The policy can therefore autonomously discover how to compose and blend behaviors from a diverse dataset, without requiring explicit motion selection or blending machinery.
 
-Cross-morphological retargeting addresses the vastly more complex challenge of transferring motion between fundamentally different, non-homeomorphic skeletons. In these scenarios, the source and target characters exhibit distinct structural topologies, meaning their kinematic trees cannot be reduced to a shared primal skeleton through simple mathematical edge merging. This includes transferring motion from a bipedal human to a quadrupedal dog, or even more extreme morphological leaps, such as mapping movement to arbitrary multi-legged arthropods or limbless creatures.
+The state representation $s$ used by the discriminator is a design choice that determines what aspects of motion are judged. Typical representations include root height, root orientation, body linear and angular velocities, joint positions relative to the root, joint velocities, and foot contact states. When the reference motion data and the simulated character share the same skeletal structure, these features can be extracted directly from both sources without any intermediate processing.
 
-The primary barrier in cross-morphology transfer is the complete absence of one-to-one joint correspondence. Because the skeletons differ in bone counts, hierarchical branching, and resting T-poses, traditional explicit IK solvers cannot be directly applied without extensive manual intervention and heuristic mappings. For instance, a system attempting to retarget a human walking motion to an eight-legged spider must mathematically reconcile human bipedal balance with the decentralized, complex phase relations of an arachnid's multiple limbs.
+#figure(
+  image("figures/amp.png", width: 80%),
+  caption: [
+    AMP  strucutre CHANGE CAPTIONS AND FIGURE
+  ],
+) <fig:amp_structure>
 
-The reliance on direct joint mapping and explicit kinematic retargeting introduces severe and pervasive failure modes into the motion synthesis pipeline. Because classical solvers predominantly focus on minimizing geometric distances while ignoring environmental contact states, the resulting trajectories are plagued by foot sliding, ground penetration, and floating. Furthermore, when topologies diverge or mass volumes are unaccounted for, explicit retargeting frequently yields physically impossible self-intersections and unnatural, abrupt velocity spikes as the IK solver struggles to satisfy conflicting constraints.
+While vanilla AMP successfully generates naturalistic movements, a major limitation is that it offers no mechanism for the policy to selectively invoke specific skills or guarantee feasible transitions between distinct gaits at runtime. When trained on a diverse dataset encompassing multiple behaviors, the adversarial discriminator acts strictly as a global data distribution evaluator. It merely discerns whether a generated trajectory is statistically plausible (natural) or anomalous (unnatural) relative to the dataset as a whole, without indicating which specific behavior is being evaluated. Because it evaluates motions globally without separating them, training on such datasets frequently precipitates mode collapse. 
 
-To bridge this massive structural divide, modern approaches are shifting away from explicit joint calculations toward learning abstract semantic correspondences. State-of-the-art frameworks achieve this by embedding motions into shared latent spaces, relying on skeleton-aware graph convolutions to form unified topology prototypes, or leveraging diffusion models guided by textual joint descriptions to organically adapt motion motifs across unseen skeletal architectures (AnyTop). These methods prove that successful cross-morphological transfer relies on translating the high-level semantic intent of an action rather than enforcing strict geometric replication.
-
-Beyond visual flaws, a critical limitation of traditional retargeting is the loss of semantic meaning and physical feasibility. Kinematic retargeters inherently lack dynamic constraints—such as momentum, friction, and motor torque limits. When these physically infeasible reference trajectories are passed downstream to a Reinforcement Learning (RL) policy for tracking, they impose a massive burden on the agent. The RL policy is forced to aggressively correct these kinematic errors just to maintain physical balance, which typically requires extensive, task-specific reward engineering, domain randomization, and parameter tuning to prevent the policy from failing completely.
-
-// These limitations highlight the necessity of shifting toward a **retargeting-free, latent-driven approach**. By completely bypassing the error-prone intermediate stage of explicitly mapping human joints to a robot's morphology, our novel methodology eliminates these artifacts at the source. Instead of forcing an RL tracking policy to mimic flawed kinematic data, the retargeting-free paradigm encodes the source motion into an abstract latent intent. The downstream diffusion-based RL policy then uses this latent semantic anchor to organically synthesize raw, executable joint actions through trial-and-error simulation. This allows dynamically feasible, artifact-free movement to emerge natively within the target character's own physical constraints, significantly reducing deployment latency and cumulative tracking errors.
+In practice, the policy shortcuts the learning process by converging entirely onto a single, highly stable dominant gait or behavioral mode, completely ignoring other behaviors in the dataset that might ultimately be more optimal for a given task. Consequently, interactive controllability is limited exclusively to the task reward channel (such as a target velocity vector), leaving the framework without a direct interface for a high-level controller to explicitly request a specific behavior or command a transition.
 
 == Shared Latent Manifolds
 
