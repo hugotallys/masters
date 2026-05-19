@@ -1,0 +1,67 @@
+<mxfile host="Electron">
+  <diagram name="ppo-structure" id="vyG0RmDOrcpWnMYzzvIh">
+    <mxGraphModel dx="485" dy="344" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="1" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="PLMMMOSFlkMs0-pt1i6N-1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;textShadow=0;strokeWidth=2;perimeterSpacing=0;shadow=1;" value="Actor-Critic PPO" vertex="1">
+          <mxGeometry height="170" width="160" x="160" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="PLMMMOSFlkMs0-pt1i6N-8" edge="1" parent="1" source="PLMMMOSFlkMs0-pt1i6N-2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=block;endFill=1;curved=0;" target="PLMMMOSFlkMs0-pt1i6N-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="PLMMMOSFlkMs0-pt1i6N-2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=middle;shadow=1;strokeWidth=2;" value="Actor Model&lt;div&gt;\(\pi(a_t | s_t, \theta)\)&lt;/div&gt;" vertex="1">
+          <mxGeometry height="40" width="120" x="180" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="PLMMMOSFlkMs0-pt1i6N-9" edge="1" parent="1" source="PLMMMOSFlkMs0-pt1i6N-3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=block;endFill=1;curved=0;" target="PLMMMOSFlkMs0-pt1i6N-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="PLMMMOSFlkMs0-pt1i6N-15" connectable="0" parent="PLMMMOSFlkMs0-pt1i6N-9" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="\(\delta_t = \text{TD}(\lambda)\)" vertex="1">
+          <mxGeometry relative="1" x="-0.1753" y="-1" as="geometry">
+            <mxPoint x="17" y="-11" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="PLMMMOSFlkMs0-pt1i6N-10" edge="1" parent="1" source="PLMMMOSFlkMs0-pt1i6N-3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=block;endFill=1;curved=0;" target="PLMMMOSFlkMs0-pt1i6N-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="PLMMMOSFlkMs0-pt1i6N-3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=middle;strokeWidth=2;shadow=1;" value="Critic Model&lt;div&gt;\(V_{\phi}(s_t)\)&lt;/div&gt;" vertex="1">
+          <mxGeometry height="40" width="120" x="180" y="260" as="geometry" />
+        </mxCell>
+        <mxCell id="PLMMMOSFlkMs0-pt1i6N-13" edge="1" parent="1" source="PLMMMOSFlkMs0-pt1i6N-4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.25;entryDx=0;entryDy=0;endArrow=block;endFill=1;curved=0;" target="PLMMMOSFlkMs0-pt1i6N-7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="PLMMMOSFlkMs0-pt1i6N-4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=middle;shadow=1;strokeWidth=2;" value="&lt;div&gt;\(r_t(\theta) = \frac{\pi_{\theta}(a_t | s_t)}{\pi_{\theta_{\text{old}}}(a_t | s_t)}\)&lt;/div&gt;" vertex="1">
+          <mxGeometry height="40" width="120" x="360" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="PLMMMOSFlkMs0-pt1i6N-11" edge="1" parent="1" source="PLMMMOSFlkMs0-pt1i6N-5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.75;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;endArrow=block;endFill=1;curved=0;" target="PLMMMOSFlkMs0-pt1i6N-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="PLMMMOSFlkMs0-pt1i6N-16" connectable="0" parent="PLMMMOSFlkMs0-pt1i6N-11" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="update \(\phi\)" vertex="1">
+          <mxGeometry relative="1" x="-0.1758" y="1" as="geometry">
+            <mxPoint x="6" y="9" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="PLMMMOSFlkMs0-pt1i6N-5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=middle;shadow=1;strokeWidth=2;" value="&lt;div&gt;\(L^V(\phi)\)&lt;/div&gt;" vertex="1">
+          <mxGeometry height="40" width="50" x="360" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="PLMMMOSFlkMs0-pt1i6N-12" edge="1" parent="1" source="PLMMMOSFlkMs0-pt1i6N-6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.75;entryDx=0;entryDy=0;endArrow=block;endFill=1;curved=0;" target="PLMMMOSFlkMs0-pt1i6N-7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="PLMMMOSFlkMs0-pt1i6N-6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=middle;shadow=1;strokeWidth=2;" value="&lt;div&gt;\(\hat{A}_t\)&lt;/div&gt;" vertex="1">
+          <mxGeometry height="40" width="50" x="430" y="260" as="geometry" />
+        </mxCell>
+        <mxCell id="PLMMMOSFlkMs0-pt1i6N-14" edge="1" parent="1" source="PLMMMOSFlkMs0-pt1i6N-7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=block;endFill=1;curved=0;" target="PLMMMOSFlkMs0-pt1i6N-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="PLMMMOSFlkMs0-pt1i6N-17" connectable="0" parent="PLMMMOSFlkMs0-pt1i6N-14" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="update \(\theta\)" vertex="1">
+          <mxGeometry relative="1" x="0.0228" y="-2" as="geometry">
+            <mxPoint x="4" y="-8" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="PLMMMOSFlkMs0-pt1i6N-7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=middle;shadow=1;strokeWidth=2;" value="&lt;div&gt;\(L^{\text{CLIP}}(\theta)\)&lt;/div&gt;" vertex="1">
+          <mxGeometry height="40" width="60" x="520" y="230" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
