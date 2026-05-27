@@ -285,10 +285,6 @@ While AMP provides a highly flexible and automated alternative to manual reward 
 = Related Works
 
 /*
- * Papers and reports
- * Include network of papers showing the area of research evolution:
- * Motion retargeting -> Physics based animation/immitation learning -> Motion transfer across morphologies via latent space allignment
-
  * Include 2 or 3 papers per paragraph
  * Seminal Papers (initiate the research area) -> More recent and relevant papers
 
@@ -298,32 +294,20 @@ While AMP provides a highly flexible and automated alternative to manual reward 
  * * Summarize what the articles have in common ? What are their contrubution to answer our research question ? * *
 */
 
-// 1998–2000: Inverse Kinematics and Optimization
-
-Early motion retargeting predominantly relied on classical optimization and handcrafted kinematic constraints to map motions between characters. The work by @gleicher_retargetting_1998 introduced a foundational technique that formulates character motion retargeting as a spacetime optimization problem, ensuring that specific kinematic features and constraints are maintained throughout the animation. In @choi_online_2000 it was proposed an online retargeting method that utilizes inverse kinematics at each frame and then calculates changes in joint angles to maintain end-effector positions while preserving the high-frequency details of the source motion.
+Historically, achieving physically valid locomotion for virtual characters relied heavily on manual design of control architectures. @coros_locomotion_2011 developed an integrated set of gaits and skills for a simulated dog, including walk, trot, pace, canter, gallop, leaps, sitting, lying down and recovery from falls. Their approach used gait graphs, a dual leg frame model, a flexible spine and optimization of virtual forces applied via the Jacobian transpose. While this produced remarkably robust locomotion as the simulated dog could traverse variable terrain and recover from push disturbances, the controllers required extensive manual engineering for each behavior and adding new skills demanded redesigning the control structure from scratch.
 
 // 2018: Deep Reinforcement Learning (RL) and Physics-Based Control
 
-As machine learning advanced, the focus shifted from purely kinematic-optimization solutions to generating physically plausible, interactive movements. The _DeepMimic_ paper by @peng_deepmimic_2018 introduced a framework utilizing example-guided deep reinforcement learning to train physics-based characters. By combining an imitation objective with task-specific goals, their RL approach allowed simulated characters to dynamically learn complex skills by imitating reference motion capture clips.
+To circumvent this engineering bottleneck, the field shifted toward automated, data-driven paradigms, where motion synthesis is learned through experience using DRL algorithms rather than explicitly programmed. @peng_deepmimic_2018 proposed DeepMimic, a framework that trains RL policies to reproduce reference motion capture clips in physics simulation. By formulating motion imitation as a multi-objective tracking problem, DeepMimic demonstrated that complex locomotion skills could be learned automatically from demonstration data. The framework was applied to both humanoid and quadruped characters, producing a simulated dragon capable of pacing and trotting gaits learned directly from authored keyframe animation data.
 
-// 2020–2024: The Shift to Latent Space Alignment
+Mode-Adaptive Neural Networks (MANN) were introduced by @zhang_mode-adaptive_2018 for quadruped motion control, accompanied by a motion capture dataset of a real dog covering diverse gaits including walk, trot, pace, canter, gallop, jump, sit, and lie down. While MANN itself is a kinematic approach (not physics-based), the accompanying dataset has become a relevant public source of high-quality quadruped motion capture data, and forms the reference motion dataset for the experiments in this thesis. @starke_local_2020 extended the MANN framework with local motion phase features for improved gait representation on the same dataset, demonstrating that better motion feature extraction improves downstream control quality.
 
-The advent of deep generative models introduced latent space alignment to effectively handle structural disparities between characters. In aberman_skeleton_aware_2020 it was developed a skeleton-aware neural network capable of unpaired motion retargeting between homeomorphic skeletons. Their method encodes structurally different motions into a shared deep latent space corresponding to a common primal skeleton. Expanding on this concept, in @yao_moconvq_2024 it was proposed the _MoConVQ_ framework, which learns scalable, discrete motion representations directly from extensive unstructured datasets. By combining these latent embeddings with model-based RL, MoConVQ provides a unified and intuitive interface for a variety of physics-based control tasks.
+@bin_peng_learning_2020 "Learning Agile Robotic Locomotion Skills by Imitating Animals"
+DeepMimic applied to quadrupeds (Laikago/A1). Retargeting was used here. Relation to @escontrela_adversarial_2022 applying this to AMP?
 
-// 2025: Advanced Alignment, Robust Tracking, and Latent-Driven Control In 2025, rapid advancements expanded across all control paradigms to bridge the embodiment gap between humans and complex robots:
+@peng_amp_2021 introduced Adversarial Motion Priors (AMP) to eliminate the reward engineering bottleneck. By replacing the handcrafted imitation reward with a learned discriminator trained on unstructured motion clip collections, AMP allowed policies to learn natural locomotion styles without manual reward tuning. The framework was demonstrated on both humanoid characters performing diverse athletic skills and a simulated quadruped dog trained on animal motion capture, establishing that the adversarial approach generalizes across character morphologies.
 
-// Latent Space Alignment:
-
-In gat_anytop_2025 it was presented AnyTop, a diffusion model capable of generating animations for completely non-homeomorphic skeletons (from bipeds to arthropods) by integrating topological information into a transformer-based de-noising network. MoReFlow was introduced by kim_moreflow_2025, an unsupervised framework utilizing flow matching to align the tokenized latent motion spaces of morphologically distinct characters. To combine efficiency with physical feasibility, it was proposed by chen_implicit_2025 Implicit Kinodynamic Motion Retargeting (IKMR), which aligns motion topologies via a dual encoder-decoder and subsequently fine-tunes the decoder using imitation learning to produce physically viable trajectories.
-
-// Optimization & Physics-Based RL:
-
-Classical optimization methods were re-evaluated to aid modern RL tracking. In "Retargeting Matters," it was demonstred by araujo_retargeting_2025 that while RL policies can sometimes overcome retargeting artifacts, generating high-quality reference motions via robust inverse kinematics optimization (their GMR method) significantly improves the success rate of downstream humanoid tracking policies. Parallel to this, in @chen_gmt_2025 it was introduced General Motion Tracking (GMT), leveraging DRL on human reference data to build robust, whole-body controllers capable of managing a highly diverse set of humanoid locomotion skills.
-
-// Latent-Driven Control (Retargeting-Free):
-// Real need of this here ? Is there any other exmaple that uses retargeting free approach ?
-In @li_language_2025 it was developed a retargeting-free humanoid control framework that, instead of decoding language prompts into human motions and mathematically retargeting them to a robot, their approach feeds semantic latent representations directly into a diffusion-based student policy.
-This latent-driven method outputs executable robot actions directly, successfully bypassing cumulative kinematic errors and reducing deployment latency, representing a paradigm shift away from explicit kinematic mapping.
+@escontrela_adversarial_2022 trained an AMP policy on a simulated Unitree A1 robot using only 4.5 seconds of German Shepherd motion capture data, and deployed it on physical hardware. Their results showed that AMP-trained policies achieved significantly lower Cost of Transport (CoT) compared to hand-designed style reward baselines, confirming that the adversarial discriminator captures motion quality effectively even with minimal reference data. This work establishes that AMP is viable for quadruped locomotion on Unitree hardware — the present thesis extends this by using the substantially larger and more diverse MANN dataset, and by targeting the Unitree Go2 morphology.
 
 = Proposed Method
 
