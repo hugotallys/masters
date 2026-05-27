@@ -37,6 +37,21 @@
 	date = {2022-07-22},
 }
 
+@misc{kingma_auto-encoding_2022,
+	title = {Auto-Encoding Variational Bayes},
+	url = {http://arxiv.org/abs/1312.6114},
+	doi = {10.48550/arXiv.1312.6114},
+	abstract = {How can we perform efficient inference and learning in directed probabilistic models, in the presence of continuous latent variables with intractable posterior distributions, and large datasets? We introduce a stochastic variational inference and learning algorithm that scales to large datasets and, under some mild differentiability conditions, even works in the intractable case. Our contributions are two-fold. First, we show that a reparameterization of the variational lower bound yields a lower bound estimator that can be straightforwardly optimized using standard stochastic gradient methods. Second, we show that for i.i.d. datasets with continuous latent variables per datapoint, posterior inference can be made especially efficient by fitting an approximate inference model (also called a recognition model) to the intractable posterior using the proposed lower bound estimator. Theoretical advantages are reflected in experimental results.},
+	number = {{arXiv}:1312.6114},
+	publisher = {{arXiv}},
+	author = {Kingma, Diederik P. and Welling, Max},
+	urldate = {2026-05-20},
+	date = {2022-12-10},
+	eprinttype = {arxiv},
+	eprint = {1312.6114 [stat.ML]},
+	keywords = {Computer Science - Machine Learning, Statistics - Machine Learning},
+}
+
 @article{peng_deepmimic_2018,
 	title = {{DeepMimic}: example-guided deep reinforcement learning of physics-based character skills},
 	volume = {37},
@@ -160,6 +175,21 @@
 	author = {Zhang, He and Starke, Sebastian and Komura, Taku and Saito, Jun},
 	urldate = {2026-05-05},
 	date = {2018-07-30},
+}
+
+@article{zhu_neural_2023,
+	title = {Neural Categorical Priors for Physics-Based Character Control},
+	volume = {42},
+	issn = {0730-0301},
+	url = {https://dl.acm.org/doi/10.1145/3618397},
+	doi = {10.1145/3618397},
+	abstract = {Recent advances in learning reusable motion priors have demonstrated their effectiveness in generating naturalistic behaviors. In this paper, we propose a new learning framework in this paradigm for controlling physics-based characters with improved motion quality and diversity over existing methods. The proposed method uses reinforcement learning ({RL}) to initially track and imitate life-like movements from unstructured motion clips using the discrete information bottleneck, as adopted in the Vector Quantized Variational {AutoEncoder} ({VQ}-{VAE}). This structure compresses the most relevant information from the motion clips into a compact yet informative latent space, i.e., a discrete space over vector quantized codes. By sampling codes in the space from a trained categorical prior distribution, high-quality life-like behaviors can be generated, similar to the usage of {VQ}-{VAE} in computer vision. Although this prior distribution can be trained with the supervision of the encoder's output, it follows the original motion clip distribution in the dataset and could lead to imbalanced behaviors in our setting. To address the issue, we further propose a technique named prior shifting to adjust the prior distribution using curiosity-driven {RL}. The outcome distribution is demonstrated to offer sufficient behavioral diversity and significantly facilitates upper-level policy learning for downstream tasks. We conduct comprehensive experiments using humanoid characters on two challenging downstream tasks, sword-shield striking and two-player boxing game. Our results demonstrate that the proposed framework is capable of controlling the character to perform considerably high-quality movements in terms of behavioral strategies, diversity, and realism. Videos, codes, and data are available at https://tencent-roboticsx.github.io/{NCP}/.},
+	pages = {178:1--178:16},
+	number = {6},
+	journaltitle = {{ACM} Trans. Graph.},
+	author = {Zhu, Qingxu and Zhang, He and Lan, Mengting and Han, Lei},
+	urldate = {2026-05-20},
+	date = {2023-12-05},
 }
 
 @article{choi_online_2000,

@@ -9,7 +9,53 @@
   lang: "en",
 )
 
-#set par(justify: true, leading: 0.65em)
+// #set par(justify: true, leading: 0.65em)
+
+// Justified text with first-line indent, no spacing between paragraphs
+
+#set par(
+  justify: true,
+  first-line-indent: (amount: 1.25cm, all: true)
+)
+
+// Headings: bold, flush left, same font, numbered
+#set heading(numbering: "1.1")
+
+#show heading.where(level: 1): it => {
+  let fontSize = 26pt
+  pagebreak(weak: true)
+  v(2.5cm)
+  set par(first-line-indent: 0pt)
+  block[
+    #text(size: fontSize, weight: "bold")[Chapter #counter(heading).display()]
+    #v(0.25cm)
+    #text(size: fontSize, weight: "bold")[#it.body]
+  ]
+  v(0.55cm)
+}
+
+#show heading.where(level: 2): it => {
+  set par(first-line-indent: 0pt)
+  text(size: 16pt, weight: "bold")[
+    #counter(heading).display() #h(0.5em) #it.body
+  ]
+}
+
+#show heading.where(level: 3): it => {
+  set par(first-line-indent: 0pt)
+  text(size: 16pt, weight: "bold")[
+    #counter(heading).display() #h(0.5em) #it.body
+  ]
+}
+
+// Separate show rule for unnumbered headings (ToC, LoF, LoT)
+#show heading.where(outlined: false): it => {
+  pagebreak(weak: true)
+  block(width: 100%, {
+    align(left, text(size: 18pt, weight: "bold")[#it.body])
+  })
+  v(0.5cm)
+}
 
 // --- COVER PAGE ---
 
@@ -27,7 +73,8 @@
   #v(2cm)
 
   #text(16pt, weight: "bold")[
-    Retargeting-Free Motion Imitation for Cross-Morphological Characters via Latent-Driven RL
+   // Retargeting-Free Motion Imitation for Cross-Morphological Characters via Latent-Driven RL
+   Adversarial Motion Priors for Physics-Based Quadrupedal Locomotion Using Animal Motion Capture Data
   ]
 
   #v(2cm)
@@ -43,7 +90,7 @@
   #v(1fr)
 
   MACEIÓ, AL \
-  MARCH - 2026
+  JUNE - 2026
 ]
 
 #pagebreak()
@@ -53,10 +100,14 @@
 #set page(numbering: "i")
 #counter(page).update(1)
 
-#outline(title: "List of Figures", target: figure.where(kind: image))
+#outline(
+  title: "List of Figures", target: figure.where(kind: image)
+)
 #pagebreak()
 
-#outline(title: "List of Tables", target: figure.where(kind: table))
+#outline(
+  title: "List of Tables", target: figure.where(kind: table)
+)
 #pagebreak()
 
 #outline(title: "Contents", indent: auto)
@@ -73,41 +124,45 @@
 
 = Introduction
 
-// Highlight here SPORE Game motivation (how motion retargeting was made back then)
-
 == The Problem
 
-Leveraging the vast amount of available human motion capture data to make physically simulated characters or robots move, consists in a challenge due to the discrepancies between the source and the target bodies morphology. Even when transferring motion to humanoid robots that share a similar structural topology, significant discrepancies exist in bone lengths, mass distributions, and actuator limitations. This challenge is massively exacerbated in cross-morphological scenarios, where the target skeleton may possess entirely different joint counts, extra appendages, or non-homeomorphic structures, completely lacking a one-to-one anatomical correspondence with the human source. Consequently, a motion that is perfectly balanced and natural for a human performer may become physically infeasible when mapped to a robot with different dynamic constraints.
-
-To overcome this problem, the standard approach relies on explicit kinematic retargeting, which uses numerical optimization and Inverse Kinematics (IK) to geometrically map human joint positions and orientations to the target character. However, because these classical solvers focus almost exclusively on geometric alignment and ignore critical dynamic forces such as momentum and torque limits, they frequently introduce severe artifacts into the reference trajectories, including foot sliding, ground penetration and self-intersections. The core problem lies in the persistent reliance on explicit joint-to-joint geometric mapping as an intermediate step. Therefore, we propose a retargeting-free paradigm that bypasses this intermediate retargeting stage. By instead encoding the source motion into a topology-agnostic latent space, the semantic intent of the movement can be used to directly condition a physics-based Reinforcement Learning (RL) policy, allowing dynamically feasible and artifact-free movement to emerge natively through the agent's interaction with the environment.
+*New framing*: The problem is that PPO trained with task-only rewards produces physically valid but perceptually unnatural quadruped locomotion. Motion capture data from real animals contains the style information needed to close this gap, but integrating it into the RL loop requires either tedious per-skill reward engineering (DeepMimic) or an adversarial approach (AMP). Applying AMP to quadruped locomotion using real animal mocap (MANN dataset) on a specific robot morphology (Go2) has not been systematically evaluated in the physics-based animation literature.
 
 == Main Objective
 
-This work aims to investigate and develop a retargeting-free framework for cross-morphological motion synthesis, leveraging topology-agnostic latent space alignment to directly guide physics-based Deep Reinforcement Learning (DRL) policies. Instead of relying on explicit kinematic mapping, this study will explore how physical movement can emerge naturally from an agent interpreting abstract motion intents and interacting within a simulated environment.
+*New version*: This work aims to investigate and evaluate the application of Adversarial Motion Priors (AMP) for physics-based quadrupedal locomotion, using real dog motion capture data from the MANN dataset retargeted to a simulated Unitree Go2 character in MuJoCo.
 
 === Specific Objectives
 
-/* 1. Understand how operations in the latent space reflect in the character movement
-2. To compare with distinct approaches to the problem (skeleton aware, DRL Immitation, classical IK, jacobian optimization)
-3.
-4. */
+1. To implement and evaluate a task-reward only PPO baseline for Go2 locomotion.
+2. To develop an explicit retargeting pipeline from the MANN dog skeleton to the Go2 morphology.
+3. To train and evaluate an AMP policy on the retargeted MANN dataset.
+4. To systematically compare AMP against the PPO baseline on motion naturalness, gait quality, and task performance metrics.
 
-1. To analyze how semantic intents encoded within a shared, topology-agnostic latent space translate into dynamically feasible character movement.
+/*
+OLD RESEARCH SCOPE (MIGHT BE USEFUL REMINDER/MOTIVATION LATER)
+
+1. Understand how operations in the latent space reflect in the character movement
+2. To compare with distinct approaches to the problem (skeleton aware, DRL Immitation, classical IK, jacobian optimization)
+3.To analyze how semantic intents encoded within a shared, topology-agnostic latent space translate into dynamically feasible character movement.
 2. To systematically compare the latent-driven approach against distinct traditional retargeting baselines.
 3. To evaluate how working with latent spaces enhances and stabilizes pure physics-based RL approaches.
 4. To establish a retargeting-free paradigm where complex animation arises as emergent behavior.
+*/
 
 == Relevance of the Proposal
 
-// TODO
+*Frame around:* 
+
+(1) quadruped animation is under-served compared to humanoid, (2) real animal mocap is available but under-utilised for physics-based control, (3) AMP eliminates reward engineering burden, making it practical for diverse datasets.
 
 == Structure
 
-// TODO
+// TODO (LASTLY)
 
 = Background
 
-This chapter introduces the concepts regarding how we represent virtual characters and animate them using a physics based approach guided by machine learning techniques. We begin describing how articulated characters are physically simulated, then formalize how reinforcement learning policies are used to control these characters, describing how motion capture data guides the learning process through reward engineering. Then we present adversarial motion priors as a principled alternative to handcrafted rewards, and finally introduce discrete latent representations as a mechanism for structuring the latent motion space.
+This chapter introduces how we represent virtual characters and animate them using a physics based approach guided by machine learning techniques. We begin describing how articulated characters are physically simulated, then formalize how reinforcement learning policies are used to control these characters and how motion imitation can be achieved through the process of reward engineering. To address the limitations of handcrafted objectives, we present Adversarial Motion Priors (AMP) as a principled, data-driven alternative capable of extracting naturalistic style rewards directly from unstructured motion datasets.
 
 == Physics-Based Character Animation
 
@@ -149,11 +204,7 @@ For continuous or high-dimensional action spaces, explicitly mapping individual 
 
 $ pi(a | s, theta) = 1 / (sigma(s, theta) sqrt(2 pi)) exp(- (a - mu(s, theta))^2 / (2 sigma(s, theta)^2)) $
 
-To optimize this landscape efficiently, actor-critic frameworks decouple the learning system into an "actor" which encapsulates the parameterized policy for action selection, and a "critic" which approximates a state-value function $hat(v)(s, w)$ to evaluate those selections. By utilizing temporal difference (TD) bootstrapping, where value estimates are updated based on the estimated values of subsequent states, the critic dramatically reduces variance issues that arises in standard Monte Carlo (MC) rollouts.
-
-// ADD HERE FIGURE OF ACTOR CRITIC DIAGRAM FROM BARTO & SUTTON
-
-// --- BEGIN 
+To optimize this landscape efficiently, actor-critic frameworks decouple the learning system into an "actor" which encapsulates the parameterized policy for action selection, and a "critic" which approximates a state-value function $hat(v)(s, w)$ to evaluate those selections. The critic does not wait until the end of an episode to score the overall performance, a method also known as Monte Carlo (MC) evaluation. Because simulations contain many random events, waiting until the end to assign a score makes it difficult to determine exactly which individual actions led to success or failure, resulting in a noisy learning signal. Instead, the critic uses temporal difference (TD) bootstrapping, meaning it constantly updates its prediction of the value function at each step, refining its current guess based on its guess for the next state. This approach smooths out the learning signal, providing the actor with immediate and more reliable feedback.
 
 == Proximal Policy Optimization Algorithms
 
@@ -171,45 +222,40 @@ where $r_t (theta) = (pi_theta (a_t | s_t)) / (pi_(theta_"old") (a_t | s_t))$ is
 
 Despite this stability, controlling characters trained with PPO faces a fundamental perceptual problem when applied to articulated figures. The algorithm is agnostic to what natural _motion intent_ looks like as it optimizes whatever scalar reward it is given. When that reward is defined purely in terms of task completion such as reach a target velocity, navigate the terrain or stay upright, the policy discovers physically valid solutions that satisfy the objective while looking somewhat awkward to our common sense. Joints snap to extreme angles, limbs swing in mechanically efficient but biologically implausible patterns, and transitions between gaits produce the sudden, discontinuous lurches characteristic of the uncanny valley. 
 
-The root cause is not a failure of the algorithm but a difficulty of reward engineering: without an explicit signal encoding how a character should move, PPO has no basis for preferring natural motion over any other physically feasible solution. Designing reward functions that fully capture motion intent is notoriously difficult and specific to each problem. This is the central limitation that motion imitation methods, discussed in the following section, are designed to address.
+The root cause is not a failure of the algorithm but a difficulty of reward engineering. Without an explicit signal encoding how a character should move, PPO has no basis for preferring natural motion over any other physically feasible solution. Designing reward functions that fully capture motion intent is notoriously difficult and specific to each problem. This is the central limitation that motion imitation methods, discussed in the following section, are designed to address.
 
 #figure(
-  image("figures/ppo.png", width: 80%),
+  image("diagrams/ppo-overview.pdf", width: 85%),
   caption: [
-    PPO lagorithm  strucutre CHANGE CAPTIONS AND FIGURE
+    PPO algorithm overall structure. Adapted from @kim_ppo_2025. 
   ],
 ) <fig:ppo_structure>
 
 == Motion Imitation via Reward Engineering
 
-Early approaches to guiding a physics-based character toward natural movement used motion imitation through handcrafted reward functions. In this paradigm, a reference motion clip, typically obtained from motion capture of a real animal (Zhang et al., 2018), provides a frame-by-frame target trajectory. The reward function measures how closely the simulated character's state matches the reference at each time step, producing a scalar incentive for the policy to reproduce the demonstrated motion.
+Early approaches to guiding a physics-based character toward natural movement used motion imitation through handcrafted reward functions. In this paradigm, a reference motion clip, typically obtained from motion capture of a real animal @zhang_mode-adaptive_2018, provides a frame-by-frame target trajectory. The reward function measures how closely the simulated character's state matches the reference at each time step, producing a scalar incentive for the policy to reproduce the demonstrated motion.
 
-The standard formulation, established by in the _DeepMimic_ framework, decomposes the imitation reward $r^I_t$ into a weighted sum of per frame error terms:
+The _DeepMimic_ framework @peng_deepmimic_2018, while predominantly known for humanoid tracking, demonstrated its versatility by successfully training non-bipedal, quadrupedal characters (such as a simulated dragon), establishing a strong precedent for applying these techniques to complex animal morphologies. The framework decomposes the imitation reward $r^I_t$ into a weighted sum of per-frame error terms:
 
 $ r^I_t = w^p_t dot r^p_t + w^v_t dot r^v_t + w^e_t dot r^e_t + w^c_t dot r^c_t $
 
-Each component penalizes a specific type of deviation from the reference motion data: $r_p$ measures joint orientation error, $r_v$ measures joint velocity error, $r_e$ measures end-effector position error (the spatial distance between the character's feet and the reference foot positions) and $r_c$ measures center-of-mass trajectory error, each term begin formulated as an exponential decay of the squared error. For instance, in order to compute the total joint orientation reward the author uses
+Each component penalizes a specific type of deviation from the reference motion data: $r_p$ measures joint orientation error, $r_v$ measures joint velocity error, $r_e$ measures end-effector position error (the spatial distance between the character's feet and the reference foot positions), and $r_c$ measures center-of-mass trajectory error. To map these unbounded distance metrics into a strict reward scale, each term is defined as an exponential decay of the squared kinematic error. As an example, because matching joint orientations is critical for preserving the overall posture of the reference motion, this specific term is assigned a dominant proportional weight of $w^p_t = 0.65$ within the overall reward structure:
 
-$ cases(
-  w^p_t = 0.65,
-  r^p_t = exp[-alpha_p (sum_j ||hat(q)^j_t minus.o q^j_t||^2)]
-) $
+$ r^p_t = exp[-alpha_p (sum_j ||hat(q)^j_t minus.o q^j_t||^2)] $
 
-where $alpha_p = 2$ is a _sharpness_ coefficient (exponential scale factor), $q^j_t$ and $hat(q)^j_t$ represent the orientations of the $j$th joint from  the simulated character and reference motion respectively, $q_1 minus.o q_2$ denotes the quaternion difference and $||q||$ computes the scalar rotation of a quaternion about its axis in radians @peng_deepmimic_2018.
+where $alpha_p = 2$ acts as an exponential scale factor, $q^j_t$ and $hat(q)^j_t$ represent the orientations of the $j$th joint from the simulated character and reference motion respectively, $q_1 minus.o q_2$ denotes the quaternion difference, and $||q||$ computes the scalar rotation of a quaternion about its axis in radians.
 
 To enable goal-directed behavior beyond pure imitation, the total reward combines the imitation objective with a task reward $r^G_t$
 
 $ r_t = omega^I dot.c r^I_t + omega^G dot.c r^G_t $
 
-with $omega^I$ and $omega^G$ being their respective weights.
+with $omega^I$ and $omega^G$ being their respective weights. The task reward incentivizes high-level objectives such as tracking a commanded velocity, reaching a target position, or navigating terrain. This dual-reward structure allows the policy to deviate from the reference motion when necessary to accomplish the task, while maintaining the stylistic character of the original motion data.
 
-The task reward incentivizes high-level objectives such as tracking a commanded velocity, reaching a target position, or navigating terrain. This dual-reward structure allows the policy to deviate from the reference motion when necessary to accomplish the task, while maintaining the stylistic character of the original motion data.
-
-Despite its demonstrated success, reward engineered motion imitation suffers from several documented limitations @peng_amp_2021. First, the reward weights ($w_p, w_v, w_e, w_c$) and sharpness coefficients ($alpha_p, alpha_v, alpha_e, alpha_c$) require careful manual tuning for each motion skill: small perturbations can cause training to diverge or converge to unnatural local minima. Second, each reference clip typically requires a separately trained policy, since the per-frame tracking objective binds the policy tightly to one specific trajectory in which case scaling to large motion datasets demands significant additional machinery for motion selection and blending. Third, the rigid per-frame tracking penalizes physically valid but stylistically different solutions, producing brittle policies that cannot smoothly transition between distinct skills. Finally, when applied to diverse motion datasets containing multiple gaits, the tracking framework requires explicit mechanisms for selecting which clip the character should follow at any given moment, adding engineering complexity for interactivity which scales poorly with dataset size.
+Despite its demonstrated success, reward engineered motion imitation suffers from several documented limitations. First, the reward weights ($w_p, w_v, w_e, w_c$) and sharpness coefficients ($alpha_p, alpha_v, alpha_e, alpha_c$) require careful manual tuning for each motion skill: small perturbations can cause training to diverge or converge to unnatural local minima. Second, each reference clip typically requires a separately trained policy, since the per-frame tracking objective binds the policy tightly to one specific trajectory in which case scaling to large motion datasets demands significant additional machinery for motion selection and blending. Third, the rigid per-frame tracking penalizes physically valid but stylistically different solutions, producing brittle policies that cannot smoothly transition between distinct skills. Finally, when applied to diverse motion datasets containing multiple gaits, the tracking framework requires explicit mechanisms for selecting which clip the character should follow at any given moment, adding engineering complexity for interactivity which scales poorly with dataset size.
 
 == Adversarial Motion Priors
 
-Adversarial Motion Priors (AMP), introduced by @peng_amp_2021, replace the handcrafted imitation reward with a learned discriminator that automatically captures the statistical characteristics of the reference motion data. The central insight is that natural motion can be defined not by explicit kinematic metrics but by a distribution: the set of state transitions that "look like" the reference data. This approach draws on the adversarial training framework from Generative Adversarial Networks (Goodfellow et al., 2014) and its application to imitation learning in Generative Adversarial Imitation Learning (Ho & Ermon, 2016).
+Adversarial Motion Priors (AMP), introduced by @peng_amp_2021, replaces the handcrafted imitation reward with a learned discriminator that automatically captures the statistical characteristics of the reference motion data. The central insight is that natural motion can be defined not by explicit kinematic metrics but by the distribution of state transitions that "look like" the reference data. This approach draws on the adversarial training framework from Generative Adversarial Networks (Goodfellow et al., 2014) and its application to imitation learning in Generative Adversarial Imitation Learning (Ho & Ermon, 2016).
 
 A discriminator network $D_psi (s_t, s_{t+1})$ is trained to distinguish state transition pairs drawn from the reference motion dataset from those generated by the RL policy during simulation. The discriminator is optimized with a least-squares objective augmented by a gradient penalty (Gulrajani et al., 2017) for training stability:
 
@@ -232,40 +278,9 @@ The state representation $s$ used by the discriminator is a design choice that d
   ],
 ) <fig:amp_structure>
 
-While vanilla AMP successfully generates naturalistic movements, a major limitation is that it offers no mechanism for the policy to selectively invoke specific skills or guarantee feasible transitions between distinct gaits at runtime. When trained on a diverse dataset encompassing multiple behaviors, the adversarial discriminator acts strictly as a global data distribution evaluator. It merely discerns whether a generated trajectory is statistically plausible (natural) or anomalous (unnatural) relative to the dataset as a whole, without indicating which specific behavior is being evaluated. Because it evaluates motions globally without separating them, training on such datasets frequently precipitates mode collapse. 
+To demonstrate the practical viability of this approach for robotic control, @escontrela_adversarial_2022 successfully applied the AMP framework to a physical quadruped robot, the Unitree A1. Using a mere 4.5 seconds of motion capture data recorded from a real German Shepherd, their system learned a robust motion prior that completely substituted the need for complex, handcrafted reward functions. The resulting policies transferred effectively from simulation to the real world and yielded highly energy-efficient locomotion strategies. Notably, the policy demonstrated natural, autonomous gait transitions—such as shifting from a pace to a canter as the commanded velocity increased—validating that AMP can distill biologically efficient movement patterns from minimal reference data. Given its focus on adapting dog motion capture to a quadrupedal robotic morphology, this specific application represents the closest prior work to our proposed methodology.
 
-In practice, the policy shortcuts the learning process by converging entirely onto a single, highly stable dominant gait or behavioral mode, completely ignoring other behaviors in the dataset that might ultimately be more optimal for a given task. Consequently, interactive controllability is limited exclusively to the task reward channel (such as a target velocity vector), leaving the framework without a direct interface for a high-level controller to explicitly request a specific behavior or command a transition.
-
-== Shared Latent Manifolds
-
-/*
-
-References:
-
-*Note: Because this specific intersection of VQ-VAEs and physics RL is so new, textbooks do not cover it yet. You must rely on modern seminal papers here.*
-
-Seminal Papers: MoConVQ: Unified Physics-Based Motion Control via Scalable Discrete Representations by Yao et al. (for discrete representations) and RoboGhost: Retargeting-free Humanoid Control via Motion Latent Guidance by Li et al. (for bypassing explicit IK retargeting entirely).
-
-*/
-
-// Latent Space Alignment: Explain how Neural Networks can map raw kinematic data from differently structured skeletons into a unified, low-dimensional deep representation (a shared latent space).
-
-Neural networks facilitate the mapping of raw kinematic data from differently structured skeletons into a unified, low-dimensional deep representation by decoupling the motion's semantic intent from the specific geometry of the source character. When characters share equivalent topological properties—such as homeomorphic skeletons—their kinematic trees can be mathematically reduced to a common primal skeleton through systematic edge merging and pooling operations. By employing skeleton-aware graph convolutional networks, the system explicitly accounts for the hierarchical structure and joint adjacency of the skeleton, allowing the network to extract high-level spatial-temporal features.
-
-Through this process, the neural network learns to disentangle the static shape properties (like bone lengths and proportions) from the dynamic motion properties. The resulting dynamic latent code becomes completely skeleton-agnostic, representing the pure "intent" of the movement. Consequently, motions performed by vastly different characters, such as a human and a humanoid robot, are compressed into the same abstract topological prototype within a shared latent space. This alignment acts as a universal translator, where the essence of the motion is mathematically aligned regardless of the explicit joint counts or bone lengths of the original bodies.
-
-// Discrete and Continuous Representations: Discuss how architectures like Vector Quantized Variational Autoencoders (VQ-VAE) or Flow Matching models encode motions into topology-agnostic "motion tokens".
-
-To efficiently process and transfer complex movements, advanced architectures translate these unified representations into discrete or continuous generative manifolds. Vector Quantized Variational Autoencoders (VQ-VAE) discretize motion by encoding continuous kinematic sequences into a sequence of latent vectors, which are then mapped to the nearest matching entries within a learned codebook. This quantization process produces highly compact "motion tokens" that capture the essential spatiotemporal patterns of a skill while discarding low-level kinematic redundancies and noise. To handle vast and diverse datasets without suffering from codebook collapse, modern systems often employ Residual Vector Quantization (RVQ), which uses a sequence of codebooks to capture motion in a coarse-to-fine manner, exponentially expanding the model's capacity to represent intricate details.
-
-Building upon these tokenized embeddings, continuous generative models like Flow Matching are employed to establish mathematically rigorous correspondences between the varied motion spaces of different characters. Instead of relying on heuristic joint mappings, Flow Matching trains continuous normalizing flows by regressing vector fields to transport the distribution of source motion tokens directly into the target character's token space. By employing conditional coupling, these models can align latent spaces in an unsupervised manner, allowing the system to flexibly target specific alignment objectives, such as preserving local stylistic nuances or ensuring precise world-frame task alignment.
-
-// Latent-Driven Control (Retargeting-Free): Explain the paradigm shift where, instead of explicitly solving IK for retargeting, a generative model outputs a latent embedding that directly conditions a downstream physical RL policy, allowing for zero-shot execution.
-
-Topology-agnostic representations introduces a profound paradigm shift in character animation and robotics: Latent-Driven, Retargeting-Free Control. // Traditionally, deploying motion onto a physically simulated character required a multi-stage pipeline: mathematically decoding the abstract motion back into explicit joint trajectories, solving Inverse Kinematics (IK) optimization problems to retarget those trajectories to a new morphology, and finally forcing a Reinforcement Learning (RL) tracking policy to mimic those specific angles. This explicit kinematic mapping forces the RL policy to aggressively fight against dynamically infeasible artifacts—like foot sliding or self-penetration—introduced by the IK solver, leading to high latency and cumulative tracking errors.
-The retargeting-free paradigm completely bypasses this explicit IK decoding stage. Instead of generating a strict trajectory of joint angles for the robot to follow, a continuous autoregressive or diffusion-based generative model outputs a compact motion latent that acts merely as a semantic "intent" or anchor. This abstract latent embedding is fed directly as a conditioning signal into a downstream, physics-based RL policy.
-
-Because the downstream policy—often built on a diffusion model backbone—is trained to denoise executable physical actions directly from its proprioceptive state and this latent intent, the physical translation of the movement emerges natively through trial-and-error simulation. This allows the character to organically execute the requested motion while strictly adhering to its own unique physical constraints, completely eliminating retargeting-induced artifacts and enabling zero-shot, real-time deployment.
+While AMP provides a highly flexible and automated alternative to manual reward engineering, the framework possesses a few known limitations. When trained on highly diverse datasets encompassing multiple distinct behaviors, the adversarial discriminator evaluates motions globally, acting strictly as a data distribution evaluator without explicitly separating or indexing the available skills. In practice, this lack of explicit structure can sometimes precipitate mode collapse, wherein the policy shortcuts the learning process by converging onto a single, highly stable dominant gait, ignoring other behaviors in the dataset. Consequently, interactive controllability relies heavily on the task reward channel (such as a target velocity vector) to coax the policy into different behaviors. Although addressing this mode collapse and the lack of explicit skill request mechanisms remains an active area for future work in representation learning, vanilla AMP remains exceptionally effective for extracting generalized, naturalistic priors for targeted motor domains such as quadrupedal locomotion.
 
 = Related Works
 
