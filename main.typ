@@ -9,12 +9,11 @@
   lang: "en",
 )
 
-// #set par(justify: true, leading: 0.65em)
-
 // Justified text with first-line indent, no spacing between paragraphs
 
 #set par(
   justify: true,
+  leading: 0.65em,
   first-line-indent: (amount: 1.25cm, all: true)
 )
 
@@ -22,18 +21,20 @@
 #set heading(numbering: "1.1")
 
 #show heading.where(level: 1): it => {
-  let fontSize = 26pt
   pagebreak(weak: true)
-  v(2.5cm)
-  set par(first-line-indent: 0pt)
-  block[
-    #text(size: fontSize, weight: "bold")[Chapter #counter(heading).display()]
-    #v(0.25cm)
-    #text(size: fontSize, weight: "bold")[#it.body]
-  ]
-  v(0.55cm)
+  // v(1.5cm)
+  block(width: 100%, {
+    set par(first-line-indent: 0pt)
+    if it.numbering != none [
+      #align(left, text(size: 26pt, weight: "bold")[
+        Chapter #counter(heading).display()
+      ])
+    ]
+    v(.25cm)
+    align(left, text(size: 26pt, weight: "bold")[#it.body])
+  })
+  v(.75cm)
 }
-
 #show heading.where(level: 2): it => {
   set par(first-line-indent: 0pt)
   text(size: 16pt, weight: "bold")[
@@ -184,7 +185,7 @@ On the other end of the spectrum, while consumer game engines such as Unity offe
 
 == Reinforcement Learning for Continuous Control
 
-The problem of controlling a physically simulated character is formally defined as a Markov Decision Process (MDP). At each discrete time step $t$, an agent observes the state of the environment $s_t$ and selects a continuous action $a_t$ according to a policy $pi$. Following the generalized formulation of policy-based reinforcement learning, a policy is parameterized by a dedicated parameter vector $theta in RR^(d')$. This policy maps a given state to a probability distribution over the action space:
+The problem of controlling a physically simulated character can be formally defined as a Markov Decision Process (MDP). At each discrete time step $t$, an agent observes the state of the environment $s_t$ and selects a continuous action $a_t$ according to a policy $pi$. Following the generalized formulation of policy-based reinforcement learning, a policy is parameterized by a dedicated parameter vector $theta in RR^(d')$. This policy maps a given state to a probability distribution over the action space:
 
 $ pi(a | s, theta) = Pr(A_t = a | S_t = s, theta_t = theta) $
 
@@ -233,25 +234,90 @@ The root cause is not a failure of the algorithm but a difficulty of reward engi
 
 == Motion Imitation via Reward Engineering
 
-Early approaches to guiding a physics-based character toward natural movement used motion imitation through handcrafted reward functions. In this paradigm, a reference motion clip, typically obtained from motion capture of a real animal @zhang_mode-adaptive_2018, provides a frame-by-frame target trajectory. The reward function measures how closely the simulated character's state matches the reference at each time step, producing a scalar incentive for the policy to reproduce the demonstrated motion.
+A major milestone in physics based character control through imitation learning was introduced in the DeepMimic framework by @peng_deepmimic_2018. Its central insight is that an RL policy can be trained to reproduce a reference motion clip by structuring the reward function as a kinematic similarity measure between the simulated character and the reference at each time step.
 
-The _DeepMimic_ framework @peng_deepmimic_2018, while predominantly known for humanoid tracking, demonstrated its versatility by successfully training non-bipedal, quadrupedal characters (such as a simulated dragon), establishing a strong precedent for applying these techniques to complex animal morphologies. The framework decomposes the imitation reward $r^I_t$ into a weighted sum of per-frame error terms:
+// BEGIN NEW ---
 
-$ r^I_t = w^p_t dot r^p_t + w^v_t dot r^v_t + w^e_t dot r^e_t + w^c_t dot r^c_t $
+In DeepMimic, each reference motion is represented as a sequence of target
+poses ${ hat(q)_t }$, where each $hat(q)_t$ encodes the full kinematic
+configuration of the character at frame $t$. A control policy
+$pi(a_t | s_t, g_t)$ maps both the current physical state $s_t$ and a
+task-specific goal $g_t$ to a distribution over joint actions $a_t$. The state
+$s_t$ is a proprioceptive description of the character's body configuration,
+comprising the relative positions of each link with respect to the root joint
+(usually designated as the pelvis), their orientations expressed as quaternions, and their linear and angular velocities, all computed in the character's local coordinate frame @peng_deepmimic_2018.
 
-Each component penalizes a specific type of deviation from the reference motion data: $r_p$ measures joint orientation error, $r_v$ measures joint velocity error, $r_e$ measures end-effector position error (the spatial distance between the character's feet and the reference foot positions), and $r_c$ measures center-of-mass trajectory error. To map these unbounded distance metrics into a strict reward scale, each term is defined as an exponential decay of the squared kinematic error. As an example, because matching joint orientations is critical for preserving the overall posture of the reference motion, this specific term is assigned a dominant proportional weight of $w^p_t = 0.65$ within the overall reward structure:
+To make the policy aware of where it currently sits within the motion sequence a phase variable $phi in [0, 1]$ is included among the
+state features, where $phi = 0$ denotes the start of a motion and $phi = 1$
+denotes the end. For cyclic motions, $phi$ is reset to zero after each
+complete cycle. Without $phi$, the policy would have no mechanism to distinguish, the same joint configuration occurring at the beginning, middle or end of a clip and would fail to reproduce temporally coherent motion.
 
-$ r^p_t = exp[-alpha_p (sum_j ||hat(q)^j_t minus.o q^j_t||^2)] $
+The goal signal $g_t$ serves as a conditioning input at every time step to specify the character's high-level objective, such as a target heading direction for locomotion tasks, while simultaneously defining the task-specific reward $r^G_t$ used after each transition to incentivize task completion. This architectural distinction forms the foundation of _Goal-Conditioned Reinforcement Learning_ (GCRL). By feeding the goal as an explicit input rather than relying solely on the reward signal, the policy is not locked into fixed behaviors, allowing the character to dynamically adapt to novel goals at runtime.
 
-where $alpha_p = 2$ acts as an exponential scale factor, $q^j_t$ and $hat(q)^j_t$ represent the orientations of the $j$th joint from the simulated character and reference motion respectively, $q_1 minus.o q_2$ denotes the quaternion difference, and $||q||$ computes the scalar rotation of a quaternion about its axis in radians.
+The total reward at each time step $t$ is a weighted combination of an
+imitation objective $r^I_t$ and the task objective $r^G_t$
 
-To enable goal-directed behavior beyond pure imitation, the total reward combines the imitation objective with a task reward $r^G_t$
+$ r_t = omega^I dot r^I_t + omega^G dot r^G_t $
 
-$ r_t = omega^I dot.c r^I_t + omega^G dot.c r^G_t $
+where $omega^I$ and $omega^G$ are scalar weights. In its original formulation,
+$omega^I = 0.7$ and $omega^G = 0.3$ for all tasks @peng_deepmimic_2018. For the target heading task, $r^G_t$ takes the form:
 
-with $omega^I$ and $omega^G$ being their respective weights. The task reward incentivizes high-level objectives such as tracking a commanded velocity, reaching a target position, or navigating terrain. This dual-reward structure allows the policy to deviate from the reference motion when necessary to accomplish the task, while maintaining the stylistic character of the original motion data.
+$ r^G_t = exp[-2.5 thin max(0, v^* - v_t^top d^*_t)^2] $
 
-Despite its demonstrated success, reward engineered motion imitation suffers from several documented limitations. First, the reward weights ($w_p, w_v, w_e, w_c$) and sharpness coefficients ($alpha_p, alpha_v, alpha_e, alpha_c$) require careful manual tuning for each motion skill: small perturbations can cause training to diverge or converge to unnatural local minima. Second, each reference clip typically requires a separately trained policy, since the per-frame tracking objective binds the policy tightly to one specific trajectory in which case scaling to large motion datasets demands significant additional machinery for motion selection and blending. Third, the rigid per-frame tracking penalizes physically valid but stylistically different solutions, producing brittle policies that cannot smoothly transition between distinct skills. Finally, when applied to diverse motion datasets containing multiple gaits, the tracking framework requires explicit mechanisms for selecting which clip the character should follow at any given moment, adding engineering complexity for interactivity which scales poorly with dataset size.
+where $v^*$ is the desired speed, $v_t$ is the character's center of mass
+velocity, and $d^*_t$ is the unit vector specifying the target direction
+@peng_deepmimic_2018. This reward penalizes the character for travelling
+slower than the desired speed along the target heading, without penalizing it
+for exceeding that speed.
+
+The imitation objective $r^I_t$ encourages the character to match specific
+kinematic characteristics of the reference pose $hat(q)_t$ at each step,
+and is decomposed as:
+
+$ r^I_t = w^p dot r^p_t + w^v dot r^v_t + w^e dot r^e_t + w^c dot r^c_t $
+
+with component weights $w^p = 0.65$, $w^v = 0.1$, $w^e = 0.15$,
+$w^c = 0.1$ @peng_deepmimic_2018. Each component penalizes a specific type
+of kinematic deviation. The pose reward $r^p_t$ measures the angular
+discrepancy between the simulated and reference joint orientations:
+
+$ r^p_t = exp[-alpha_p (sum_j || hat(q)^j_t minus.o q^j_t ||^2)] $
+
+where $alpha_p = 2$ is an exponential factor, $q^j_t$ and
+$hat(q)^j_t$ are the orientations of the $j$-th joint from the simulated
+character and reference motion respectively, $q_1 minus.o q_2$ denotes the
+quaternion difference and $|| q ||$ computes the scalar rotation of a
+quaternion about its axis in radians @peng_deepmimic_2018. The joint velocity
+reward $r^v_t$ penalizes deviations in local angular velocities:
+
+$ r^v_t = exp[-alpha_v (sum_j || hat(dot(q))^j_t - dot(q)^j_t ||^2)] $
+
+where $alpha_v = 0.1$ and the target velocity $hat(dot(q))^j_t$ is computed
+from the reference data via finite differences. The end-effector reward
+$r^e_t$ penalizes mismatches in the world-space positions of the character's
+hands and feet:
+
+$ r^e_t = exp[-alpha_e sum_e || hat(p)^e_t - p^e_t ||^2] $
+
+where $alpha_e = 40$ and $p^e_t$ denotes the 3D world position of
+end-effector $e in {lr("left foot"), lr("right foot"), lr("left hand"),
+lr("right hand")}$ @peng_deepmimic_2018. Finally, the center-of-mass reward
+$r^c_t$ penalizes deviations in the root trajectory:
+
+$ r^c_t = exp[-alpha_c || hat(p)^c_t - p^c_t ||^2] $
+
+where $alpha_c = 10$ and $p^c_t$ denotes the center-of-mass position.
+
+Despite producing highly natural motion for individual skills, the DeepMimic
+paradigm imposes some constraints that limit its scalability. First, the per-clip reward structure requires a separate, independently trained
+policy for each reference motion clip. The phase variable $phi$ explicitly
+synchronizes the policy with a single temporal sequence, making it
+structurally impossible for one policy to generalize across multiple clips
+without additional mechanisms @peng_deepmimic_2018. Second, the reward
+weights ($w^p$, $w^v$, $w^e$, $w^c$) and its coefficients
+($alpha_p$, $alpha_v$, $alpha_e$, $alpha_c$) require careful manual tuning
+for each individual skills: small perturbations can cause training to diverge
+or converge to degenerate local minima. Third, the rigid per-frame tracking penalizes physically valid but stylistically different solutions, producing brittle policies that cannot smoothly transition between distinct skills. The multi-clip extensions proposed in DeepMimic such as multi-clip rewards, skill selectors, and composite policies provide partial workarounds, but require additional engineering and do not scale gracefully to large unstructured motion libraries @peng_deepmimic_2018. These limitations collectively motivate the adversarial approach described in the following section.
 
 == Adversarial Motion Priors
 
@@ -305,19 +371,23 @@ Mode-Adaptive Neural Networks (MANN) were introduced by @zhang_mode-adaptive_201
 @bin_peng_learning_2020 "Learning Agile Robotic Locomotion Skills by Imitating Animals"
 DeepMimic applied to quadrupeds (Laikago/A1). Retargeting was used here. Relation to @escontrela_adversarial_2022 applying this to AMP?
 
+
 @peng_amp_2021 introduced Adversarial Motion Priors (AMP) to eliminate the reward engineering bottleneck. By replacing the handcrafted imitation reward with a learned discriminator trained on unstructured motion clip collections, AMP allowed policies to learn natural locomotion styles without manual reward tuning. The framework was demonstrated on both humanoid characters performing diverse athletic skills and a simulated quadruped dog trained on animal motion capture, establishing that the adversarial approach generalizes across character morphologies.
 
 @escontrela_adversarial_2022 trained an AMP policy on a simulated Unitree A1 robot using only 4.5 seconds of German Shepherd motion capture data, and deployed it on physical hardware. Their results showed that AMP-trained policies achieved significantly lower Cost of Transport (CoT) compared to hand-designed style reward baselines, confirming that the adversarial discriminator captures motion quality effectively even with minimal reference data. This work establishes that AMP is viable for quadruped locomotion on Unitree hardware — the present thesis extends this by using the substantially larger and more diverse MANN dataset, and by targeting the Unitree Go2 morphology.
 
 = Proposed Method
 
-// TODO
+- Dataset analysis and preprocessing (MANN -> Go2). Explicit retarget and feature extraction. Generated Artifact: Parsed BHV to .npy of feature time series $Phi(s_t)$
+- Latent Space Structuring (Motion VQ-VAE) network training. Generated Artifact: Plot each "motion cap feature time window" in 2d (use dimensionality reduction techniques)
+- Extending MimicKit framework (Adapt to run on MuJoCo: flexibility between CPU and GPU parallelization). Generated Artifact: github repository
+- Adapt AMP training with latent space structuring (main work contribution)
 
 = Preliminary Results
 
 // TODO
 
-= Activity schedule
+#heading(level: 1, numbering: none)[Activity Schedule]
 
 The following tables detail the planned execution of tasks in order to fulfill the research. @tab_activity describes the academic activities to be carried out, which are organized in a monthly schedule as seen in @tab_calendar.
 
@@ -370,4 +440,5 @@ The following tables detail the planned execution of tasks in order to fulfill t
   caption: [Activity schedule calendar from March to December 2026.],
 ) <tab_calendar>
 
-#bibliography("zotero.bib", style: "apa")
+#heading(level: 1, numbering: none)[Bibliography]
+#bibliography("zotero.bib", style: "apa", title: none)
