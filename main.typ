@@ -343,7 +343,7 @@ where $lambda_"gp"$ represents the gradient penalty coefficient, which serves as
 
 The discriminator's output is converted into a style reward signal for the RL policy, approaching $1$ when the policy produces transitions that the discriminator classifies as similar to the reference data, and $0$ for transitions that deviate from the reference distribution:
 
-$ r_"style" (s_t, s_(t+1)) = max(0, 1 - 0.25 dot (D_psi (s_t, s_(t+1)) - 1)^2) $
+$ r^S_t (s_t, s_(t+1)) = max(0, 1 - 0.25 dot (D_psi (s_t, s_(t+1)) - 1)^2) $
 
 The dataset $cal(M)$ is accessed by randomly sampling consecutive frame pairs
 $(s, s') tilde cal(M)$ without requiring clip boundaries, temporal
@@ -355,16 +355,16 @@ This adversarial style signal is combined with a task reward $r^G_t$ that
 evaluates the character's progress toward the goal $g_t$. The total reward $r_t = w^S dot r^S_t + w^G dot r^G_t$ aggregates both objectives through scalar weights $w^S$ and $w^G$, and is
 fed back through PPO to update the policy parameters $theta$. The state representation $s$ used by the discriminator is a design choice that determines what aspects of motion are judged. Typical representations include root height, root orientation, body linear and angular velocities, joint positions relative to the root, joint velocities, and foot contact states. When the reference motion data and the simulated character share the same skeletal structure, these features can be extracted directly from both sources without any intermediate processing.
 
-#figure(
-  image("figures/amp.png", width: 80%),
-  caption: [
-    AMP  strucutre CHANGE CAPTIONS AND FIGURE
-  ],
-) <fig:amp_structure>
-
 The AMP formulation eliminates all three limitations of DeepMimic identified in Section 2.4. First, because the discriminator evaluates randomly sampled transition pairs $(s_t, s_(t+1))$ independently of clip boundaries and without a phase variable, a single policy can be trained on an entire unstructured motion library simultaneously, without requiring separate per-clip policies or a clip selection mechanism @peng_amp_2021. Second, because the style reward is produced by a learned adversarial function rather than a handcrafted multi-term formula, no manual reward weight specification is required beyond the single scalar $w^S$. Third, because the motion prior evaluates task-agnostic observation features without requiring temporal synchronization, the system eliminates the need for manual clip annotation, segmentation, or alignment of the reference motions. The discriminator automatically learns to compose and transition between distinct behaviors directly from the raw dataset.
 
 While AMP provides a highly flexible and automated alternative to manual reward engineering, the framework possesses a few known limitations. When trained on highly diverse datasets encompassing multiple distinct behaviors, the adversarial discriminator evaluates motions globally, acting strictly as a data distribution evaluator without explicitly separating or indexing the available skills. In practice, this lack of explicit structure can sometimes precipitate mode collapse, wherein the policy shortcuts the learning process by converging onto a single, highly stable dominant gait, ignoring other behaviors in the dataset. Consequently, interactive controllability relies heavily on the task reward channel (such as a target velocity vector) to coax the policy into different behaviors. Although addressing this mode collapse and the lack of explicit skill request mechanisms remains an active area for future work in representation learning, vanilla AMP remains exceptionally effective for extracting generalized, naturalistic priors for targeted motor domains such as quadrupedal locomotion.
+
+#figure(
+  image("figures/amp.png", width: 70%),
+  caption: [
+    Overview of the Adversarial Motion Priors (AMP) framework. The policy is trained on a combined task reward for achieving a goal, and a style reward from a learned discriminator evaluating motion naturalness. Adapted from @peng_amp_2021.
+  ],
+) <fig:amp_structure>
 
 = Related Works
 
