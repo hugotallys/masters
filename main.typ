@@ -376,13 +376,16 @@ $ cal(L)_"VAE" = bb(E)_(q_phi (z | x)) [ |x - G_theta(z)|^2 ] + beta dot D_"KL" 
 
 Because sampling is not differentiable, the VAE employs the reparameterization trick, expressing $z = mu_phi (x) + sigma_phi (x) dot.o epsilon$ with $epsilon ~ cal(N)(0, I)$, so that gradients flow through $mu_phi$ and $sigma_phi$ @kingma_auto-encoding_2022. The KL term encourages a smooth, continuous latent space in which nearby codes decode to similar outputs.
 
+#figure(
+  image("figures/vae-trick.png", width: 75%),
+  caption: [
+    Illustration of the reparameterization trick. By isolating the random noise $epsilon$ from the network's parameters, this technique allows gradients to successfully backpropagate through the mean and variance during training. Adapted from @noauthor_pdf_nodate
+  ],
+) <fig:vae_trick>
+
 In the context of physics-based control, this continuous structure has been exploited directly: Adversarial Skill Embeddings (ASE) @peng_ase_2022 condition the low-level policy on a continuous latent $z in RR^64$, and Versatile Motion Priors (VMP) (Serifi et al., 2024) condition on a time-varying latent extracted by a VAE over short motion windows. The smoothness that makes such spaces easy to interpolate is, however, a liability when the dataset contains qualitatively distinct behaviors. Interpolating between the latent code for a walk and the code for a gallop produces a blurred, averaged motion rather than a clean switch between the two gaits a problem known as mode-averaging @zhu_neural_2023  (Zhu et al., 2023). For a dataset such as MANN, whose value lies precisely in its discrete repertoire of named gaits, this averaging is undesirable.
 
-// include reparametrixation trick grad flow graph here
-
-Discrete latent representations avoid the mode averaging by replacing the continuous latent vector with an index into a finite codebook of learned prototype vectors. Each input is assigned to exactly one codebook entry, producing a hard partition of the data in which an entry is either selected or not, with no blended intermediates.
-
-The Vector Quantized Variational Autoencoder (VQ-VAE) (van den Oord et al., 2017) realizes this idea with an encoder $E$, a codebook $cal(C) = {e_1, ..., e_K}$ of $K$ vectors in $RR^D$, and a decoder $G$. Given an input $x$, the encoder produces a continuous vector $z_e = E(x)$, which is quantized to its nearest codebook entry,
+Discrete latent representations avoid the mode averaging by replacing the continuous latent vector with an index into a finite codebook of learned prototype vectors. Each input is assigned to exactly one codebook entry, producing a hard partition of the data in which an entry is either selected or not, with no blended intermediates. Vector Quantized Variational Autoencoders (VQ-VAE) @oord_neural_2017 implements this idea with an encoder $E$, a codebook $cal(C) = {e_1, ..., e_K}$ of $K$ vectors in $RR^D$, and a decoder $G$. Given an input $x$, the encoder produces a continuous vector $z_e = E(x)$, which is quantized to its nearest codebook entry
 
 $ z_q = e_k, quad k = arg min_j |z_e - e_j|_2 $
 
@@ -392,7 +395,12 @@ $ cal(L)_"VQ" = underbrace(|x - hat(x)|^2, "reconstruction") + underbrace(|op("s
 
 where $"sg"[ thin dot thin ]$ is the stop-gradient operator. The codebook term moves the entries toward the encoder outputs (often replaced in practice by an exponential moving average update for stability), and the commitment term, weighted by $beta$, keeps the encoder from drifting away from the discrete entries it is assigned to.
 
-// include figure of vq vae here
+#figure(
+  image("figures/vq-vae.png", width: 45%),
+  caption: [
+    Architecture of VQ-VAE. The encoded continuous vector $z_e$, is  quantized to the nearest discrete codebook entry to produce $z_q$. Because this quantization step is non-differentiable, a straight-through estimator is used to pass gradients directly from $z_q$ back to $z_e$ during the backward pass.
+  ],
+) <fig:vq_vae>
 
 = Related Works
 
