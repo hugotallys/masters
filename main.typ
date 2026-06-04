@@ -319,8 +319,6 @@ or converge to degenerate local minima. Third, the rigid per-frame tracking pena
 
 == Adversarial Motion Priors
 
-/* BEGIN OLD */
-
 Adversarial Motion Priors (AMP), introduced by @peng_amp_2021, addresses the scalability limitations of reward-engineered imitation by extending the standard goal-conditioned reinforcement learning formulation. Specifically, it replaces handcrafted multi-term imitation objectives with a learned adversarial discriminator that automatically captures the statistical characteristics of unstructured reference motion data. Fundamentally, AMP operates on the premise that natural motion can be formulated as a distribution of state transitions matching those within a reference dataset. To align the simulated character's behavior with this distribution, the framework builds upon the adversarial training paradigm of Generative Adversarial Networks (GANs) @goodfellow_generative_2020 and its specific extension to imitation learning via Generative Adversarial Imitation Learning (GAIL) @ho_generative_2016
 
 As illustrated in @fig:amp_structure, the policy $pi_theta (a_t | s_t, g_t)$ operates within
@@ -360,11 +358,41 @@ The AMP formulation eliminates all three limitations of DeepMimic identified in 
 While AMP provides a highly flexible and automated alternative to manual reward engineering, the framework possesses a few known limitations. When trained on highly diverse datasets encompassing multiple distinct behaviors, the adversarial discriminator evaluates motions globally, acting strictly as a data distribution evaluator without explicitly separating or indexing the available skills. In practice, this lack of explicit structure can sometimes precipitate mode collapse, wherein the policy shortcuts the learning process by converging onto a single, highly stable dominant gait, ignoring other behaviors in the dataset. Consequently, interactive controllability relies heavily on the task reward channel (such as a target velocity vector) to coax the policy into different behaviors. Although addressing this mode collapse and the lack of explicit skill request mechanisms remains an active area for future work in representation learning, vanilla AMP remains exceptionally effective for extracting generalized, naturalistic priors for targeted motor domains such as quadrupedal locomotion.
 
 #figure(
-  image("figures/amp.png", width: 70%),
+  image("figures/amp.png", width: 75%),
   caption: [
-    Overview of the Adversarial Motion Priors (AMP) framework. The policy is trained on a combined task reward for achieving a goal, and a style reward from a learned discriminator evaluating motion naturalness. Adapted from @peng_amp_2021.
+    Overview of the Adversarial Motion Priors (AMP) framework. The policy is trained on a combined task reward for achieving a goal and a style reward from a learned discriminator evaluating motion naturalness. Adapted from @peng_amp_2021.
   ],
 ) <fig:amp_structure>
+
+== Structured Latent Motion Representations
+
+The AMP limitations identified previously namely, mode collapse on diverse datasets and the absence of an explicit channel for requesting a specific skill at runtime, relies on the fact vanilla AMP imposes no organized structure over the space of motions contained in $cal(M)$. The discriminator provides a single global verdict on whether a transition is natural, but it offers the policy no compact handle by which a distinct behavior could be selected. A natural remedy is to learn an explicit, structured representation of the motion data in which qualitatively different behaviors — walking, trotting, galloping — occupy distinct, addressable regions. Such a representation can then serve as an additional conditioning input to the control policy, supplying the skill-selection channel that the task reward alone cannot provide. Two broad families of latent representation exist, distinguished by whether the latent variable is continuous or discrete.
+
+=== Continuous Latent Spaces
+
+The Variational Autoencoder (VAE) @kingma_auto-encoding_2022 is a widely accepted generative model commonly utilized to learn continuous latent representations of complex data. A VAE couples an encoder $E_phi$, which maps an input $x$ to a distribution over a latent vector $z in RR^d$, with a decoder $G_theta$, which reconstructs the input from $z$. Rather than encoding $x$ to a single point, the encoder outputs the parameters of a Gaussian posterior $q_phi (z | x) = cal(N)(mu_phi (x), sigma_phi (x))$, from which $z$ is sampled. Training minimizes a reconstruction error together with a Kullback–Leibler regularization term that pulls the posterior toward a standard normal prior $p(z) =  cal(N)(0, I)$:
+
+$ cal(L)_"VAE" = bb(E)_(q_phi (z | x)) [ |x - G_theta(z)|^2 ] + beta dot D_"KL" (q_phi (z | x) || p(z)) $
+
+Because sampling is not differentiable, the VAE employs the reparameterization trick, expressing $z = mu_phi (x) + sigma_phi (x) dot.o epsilon$ with $epsilon ~ cal(N)(0, I)$, so that gradients flow through $mu_phi$ and $sigma_phi$ @kingma_auto-encoding_2022. The KL term encourages a smooth, continuous latent space in which nearby codes decode to similar outputs.
+
+In the context of physics-based control, this continuous structure has been exploited directly: Adversarial Skill Embeddings (ASE) @peng_ase_2022 condition the low-level policy on a continuous latent $z in RR^64$, and Versatile Motion Priors (VMP) (Serifi et al., 2024) condition on a time-varying latent extracted by a VAE over short motion windows. The smoothness that makes such spaces easy to interpolate is, however, a liability when the dataset contains qualitatively distinct behaviors. Interpolating between the latent code for a walk and the code for a gallop produces a blurred, averaged motion rather than a clean switch between the two gaits a problem known as mode-averaging @zhu_neural_2023  (Zhu et al., 2023). For a dataset such as MANN, whose value lies precisely in its discrete repertoire of named gaits, this averaging is undesirable.
+
+// include reparametrixation trick grad flow graph here
+
+Discrete latent representations avoid the mode averaging by replacing the continuous latent vector with an index into a finite codebook of learned prototype vectors. Each input is assigned to exactly one codebook entry, producing a hard partition of the data in which an entry is either selected or not, with no blended intermediates.
+
+The Vector Quantized Variational Autoencoder (VQ-VAE) (van den Oord et al., 2017) realizes this idea with an encoder $E$, a codebook $cal(C) = {e_1, ..., e_K}$ of $K$ vectors in $RR^D$, and a decoder $G$. Given an input $x$, the encoder produces a continuous vector $z_e = E(x)$, which is quantized to its nearest codebook entry,
+
+$ z_q = e_k, quad k = arg min_j |z_e - e_j|_2 $
+
+and the decoder reconstructs $hat(x) = G(z_q)$. Likewise in standard VAEs, because the $arg min$ is not differentiable, gradients are passed from decoder input to encoder output unchanged via the straight-through estimator. Training minimizes a reconstruction loss together with two terms that align the codebook and the encoder:
+
+$ cal(L)_"VQ" = underbrace(|x - hat(x)|^2, "reconstruction") + underbrace(|op("sg")[z_e] - z_q|^2, "codebook") + underbrace(beta |z_e - op("sg")[z_q]|^2, "commitment") $
+
+where $"sg"[ thin dot thin ]$ is the stop-gradient operator. The codebook term moves the entries toward the encoder outputs (often replaced in practice by an exponential moving average update for stability), and the commitment term, weighted by $beta$, keeps the encoder from drifting away from the discrete entries it is assigned to.
+
+// include figure of vq vae here
 
 = Related Works
 
@@ -389,14 +417,25 @@ Mode-Adaptive Neural Networks (MANN) were introduced by @zhang_mode-adaptive_201
 @bin_peng_learning_2020 "Learning Agile Robotic Locomotion Skills by Imitating Animals"
 DeepMimic applied to quadrupeds (Laikago/A1). Retargeting was used here. Relation to @escontrela_adversarial_2022 applying this to AMP?
 
-
 @peng_amp_2021 introduced Adversarial Motion Priors (AMP) to eliminate the reward engineering bottleneck. By replacing the handcrafted imitation reward with a learned discriminator trained on unstructured motion clip collections, AMP allowed policies to learn natural locomotion styles without manual reward tuning. The framework was demonstrated on both humanoid characters performing diverse athletic skills and a simulated quadruped dog trained on animal motion capture, establishing that the adversarial approach generalizes across character morphologies.
 
 @escontrela_adversarial_2022 trained an AMP policy on a simulated Unitree A1 robot using only 4.5 seconds of German Shepherd motion capture data, and deployed it on physical hardware. Their results showed that AMP-trained policies achieved significantly lower Cost of Transport (CoT) compared to hand-designed style reward baselines, confirming that the adversarial discriminator captures motion quality effectively even with minimal reference data. This work establishes that AMP is viable for quadruped locomotion on Unitree hardware — the present thesis extends this by using the substantially larger and more diverse MANN dataset, and by targeting the Unitree Go2 morphology.
 
 To demonstrate the practical viability of this approach for robotic control, @escontrela_adversarial_2022 successfully applied the AMP framework to a physical quadruped robot, the Unitree A1. Using a mere 4.5 seconds of motion capture data recorded from a real German Shepherd, their system learned a robust motion prior that completely substituted the need for complex, handcrafted reward functions. The resulting policies transferred effectively from simulation to the real world and yielded highly energy-efficient locomotion strategies. Notably, the policy demonstrated natural, autonomous gait transitions—such as shifting from a pace to a canter as the commanded velocity increased—validating that AMP can distill biologically efficient movement patterns from minimal reference data. Given its focus on adapting dog motion capture to a quadrupedal robotic morphology, this specific application represents the closest prior work to our proposed methodology.
 
+// -- Latent structuring related works
+
+The absence of an explicit skill structure in AMP motivated a line of work that augments adversarial training with a learned latent space, pursued along continuous and discrete tracks. On the continuous track, @peng_ase_2022 introduced Adversarial Skill Embeddings (ASE), extending AMP with a latent variable $z in RR^{64}$ that conditions the low-level policy; a mutual-information objective ensures that different codes yield distinguishable behaviors, and the resulting skill space can be reused across downstream tasks. Tessler et al. (2023) built CALM on the same continuous foundation, adding text or label conditioning so that behaviors can be directed by high-level descriptions. Serifi et al. (2024) proposed Versatile Motion Priors (VMP), which trains a continuous VAE over short motion windows and conditions a tracking policy on the time-varying latent, achieving robust tracking of diverse and unseen motions. These methods share the smoothness of continuous latents and, with it, the mode-averaging tendency that blurs transitions between qualitatively distinct gaits (Zhu et al., 2023).
+
+On the discrete track, Zhu et al. (2023) introduced Neural Categorical Priors (NCP), which uses a VQ-VAE to compress motion into a discrete codebook and then trains a categorical prior over that codebook, with a prior-shifting procedure to prevent skill collapse and a high-level controller that selects entries for downstream tasks. NCP reported substantially improved motion quality and diversity over continuous baselines on humanoid characters. Yao et al. (2024) extended this direction with MoConVQ, which couples a VQ-VAE motion representation with model-based reinforcement learning to learn from tens of hours of unstructured data, yielding a token interface amenable to text-driven generation and integration with language models. Both NCP and MoConVQ were demonstrated exclusively on humanoid characters, and both retain DeepMimic-style tracking rewards during the representation-learning stage rather than an adversarial prior.
+
+Applied to motion, the VQ-VAE encoder ingests short temporal windows of kinematic features — root and body velocities, joint configurations, foot-contact patterns — and compresses each window into a discrete token $k$. Several properties make this attractive for quadruped locomotion. First, after training the codebook tends to partition the motion space by behavior without ever being given gait labels: distinct entries come to specialize in distinct gaits (Zhu et al., 2023). Second, the finite codebook acts as a regularizer that discourages memorization of individual clips and encourages generalization. Third, a sequence of tokens is compositional, so a trajectory of skills can be represented as a string of codebook indices (Yao et al., 2024).
+
 = Proposed Method
+
+// Two gaps in this literature define the position of the present work. First, no published method applies a discrete VQ-VAE motion representation to physics-based quadruped locomotion; the discrete-latent results to date are humanoid. Second, the discrete-latent methods that do exist rely on handcrafted tracking rewards in their representation stage, whereas the adversarial prior of AMP removes reward engineering entirely. This thesis targets both gaps: it applies a discrete motion codebook to a quadruped morphology (the Unitree Go2) using real dog motion capture (the MANN dataset of Zhang et al., 2018), and it pairs that codebook with an AMP discriminator rather than a tracking reward. The closest quadruped precedent, Escontrela et al. (2022), establishes that AMP alone produces efficient, naturally transitioning gaits on Unitree hardware from minimal dog mocap, but provides no latent structure and therefore no explicit skill-selection channel — the specific capability this work introduces.
+
+// This token interface is exactly the structure that vanilla AMP lacks. A discrete code $k$ provides an explicit, low-dimensional handle that a high-level controller can set to request a specific gait, while the AMP discriminator continues to supply the naturalness signal. The combination — a discrete codebook for what to do and an adversarial prior for how naturally to do it — is the conceptual basis for the method proposed in this work, and the verification that such a codebook does in fact partition the MANN gaits is the central deliverable of the present proposal.
 
 - Dataset analysis and preprocessing (MANN -> Go2). Explicit retarget and feature extraction. Generated Artifact: Parsed BHV to .npy of feature time series $Phi(s_t)$
 - Latent Space Structuring (Motion VQ-VAE) network training. Generated Artifact: Plot each "motion cap feature time window" in 2d (use dimensionality reduction techniques)
