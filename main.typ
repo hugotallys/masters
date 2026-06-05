@@ -131,14 +131,17 @@
 
 == Main Objective
 
-*New version*: This work aims to investigate and evaluate the application of Adversarial Motion Priors (AMP) for physics-based quadrupedal locomotion, using real dog motion capture data from the MANN dataset retargeted to a simulated Unitree Go2 character in MuJoCo.
+This work aims to investigate and evaluate the augmentation of Adversarial Motion Priors (AMP) with a discrete latent representation of motion, for physics-based quadrupedal locomotion, using real dog motion capture from the MANN dataset retargeted to a simulated Unitree Go2 character in MuJoCo. The discrete codebook is intended to address vanilla AMP's mode collapse on diverse datasets and to provide an explicit channel for active skill selection.
 
 === Specific Objectives
 
-1. To implement and evaluate a task-reward only PPO baseline for Go2 locomotion.
-2. To develop an explicit retargeting pipeline from the MANN dog skeleton to the Go2 morphology.
-3. To train and evaluate an AMP policy on the retargeted MANN dataset.
-4. To systematically compare AMP against the PPO baseline on motion naturalness, gait quality, and task performance metrics.
+1. To develop an explicit retargeting pipeline from the MANN dog skeleton to the Go2 morphology and extract a windowed kinematic feature representation of the reference motions.
+2. To train a motion VQ-VAE on the retargeted MANN data and verify, through low-dimensional projection (t-SNE / UMAP / PCA), that the learned codebook partitions the dataset by gait without supervision.
+3. To implement and evaluate a task-reward-only PPO baseline and a vanilla AMP policy for Go2 locomotion as comparison points.
+4. To condition the AMP policy on the discrete codebook and evaluate whether the latent channel mitigates mode collapse and enables controllable gait selection, against the baselines, on motion naturalness, gait quality, and task performance.
+
+// Objectives 1–2 are the proposal-defense deliverable; objectives 3–4 are the thesis proper.
+
 
 /*
 OLD RESEARCH SCOPE (MIGHT BE USEFUL REMINDER/MOTIVATION LATER)
@@ -445,10 +448,46 @@ Applied to motion, the VQ-VAE encoder ingests short temporal windows of kinemati
 
 // This token interface is exactly the structure that vanilla AMP lacks. A discrete code $k$ provides an explicit, low-dimensional handle that a high-level controller can set to request a specific gait, while the AMP discriminator continues to supply the naturalness signal. The combination — a discrete codebook for what to do and an adversarial prior for how naturally to do it — is the conceptual basis for the method proposed in this work, and the verification that such a codebook does in fact partition the MANN gaits is the central deliverable of the present proposal.
 
-- Dataset analysis and preprocessing (MANN -> Go2). Explicit retarget and feature extraction. Generated Artifact: Parsed BHV to .npy of feature time series $Phi(s_t)$
-- Latent Space Structuring (Motion VQ-VAE) network training. Generated Artifact: Plot each "motion cap feature time window" in 2d (use dimensionality reduction techniques)
-- Extending MimicKit framework (Adapt to run on MuJoCo: flexibility between CPU and GPU parallelization). Generated Artifact: github repository
-- Adapt AMP training with latent space structuring (main work contribution)
+// - Dataset analysis and preprocessing (MANN -> Go2). Explicit retarget and feature extraction. Generated Artifact: Parsed BHV to .npy of feature time series $Phi(s_t)$
+// - Latent Space Structuring (Motion VQ-VAE) network training. Generated Artifact: Plot each "motion cap feature time window" in 2d (use dimensionality reduction techniques)
+// - Extending MimicKit framework (Adapt to run on MuJoCo: flexibility between CPU and GPU parallelization). Generated Artifact: github repository
+// - Adapt AMP training with latent space structuring (main work contribution)
+
+This work proposes to augment the AMP framework with a discrete latent representation of the reference motion data, so that the resulting policy retains AMP's reward engineered naturalness while gaining an explicit channel for selecting which gait to perform. The reference data throughout is the MANN dog motion capture dataset @zhang_mode-adaptive_2018, retargeted to the Unitree Go2 morphology. The method is organized as a two-stage pipeline, with a single-stage variant identified as a direction for future investigation
+
+== Overview
+
+In the proposed framework the control policy is conditioned not only on the proprioceptive state $s_t$ and the task goal $g_t$, as in vanilla AMP, but additionally on a discrete latent code $k$ drawn from a learned motion codebook:
+
+$ a_t = pi_theta(s_t, g_t, k) $
+
+The code $k$ specifies which gait the character should perform, while the goal $g_t$ continues to specify where to go (heading and speed). The AMP discriminator $D_psi(s_t, s_{t+1})$ continues to supply the style reward $r^S_t$, and the total reward retains the form used in the imitation learning paradigm:
+
+$ r_t = w^S dot r^S_t + w^G dot r^G_t $
+
+so that the latent code adds a control channel without disturbing the reward structure that makes AMP attractive. The codebook is supplied by a motion VQ-VAE trained on the retargeted MANN data, described next.
+
+== Retargeting and Motion Codebook 
+
+The first stage produces the discrete motion representation and is the concrete deliverable for this proposal defense. It comprises three steps.
+
+1. Retargeting. The MANN skeleton (approximately sixty joints, spanning walk, trot, pace, canter, gallop, jump, sit, and lie-down) is mapped to the Go2 skeleton by explicit inverse- kinematics retargeting, producing Go2 joint-angle trajectories aligned to the reference clips. Because the MANN data and the simulated Go2 then share a skeletal structure, the discriminator features and the codebook input features can be extracted from both without further morphological transfer.
+
+2. Feature extraction. Each frame is reduced to a kinematic feature vector $Phi(s_t)$ — root height and orientation, body linear and angular velocities, joint positions relative to the root, joint velocities, and foot-contact states — and the resulting time series is windowed into short temporal segments suitable for the VQ-VAE encoder. The generated artifact is the parsed BVH converted to .npy feature time series.
+
+3. Codebook training and verification. A motion VQ-VAE is trained on these windows, learning a codebook $cal(C) = {e_1, ..., e_K}$ that compresses each window to a discrete token. The central empirical question at this stage is whether the codebook organizes the MANN repertoire by gait without gait labels. This is assessed by encoding the full dataset and projecting the codebook assignments to two dimensions with t-SNE, UMAP, or PCA, and verifying visually that distinct gaits occupy distinct, separable regions of the latent space. A clean partition is direct evidence that the discrete representation supplies the skill structure that the later AMP-conditioning stage requires.
+
+== Latent-Conditioned AMP // (planned thesis work)
+
+With the codebook frozen, the second stage trains the AMP policy with the discrete code as an additional input. An embedding layer maps each integer $k$ to its dense codebook vector before concatenation with $(s_t, g_t)$. The discriminator and the reward $r_t = w^S r^S_t + w^G r^G_t$ are unchanged from vanilla AMP. The discrete bottleneck is expected to address the two open limitations identified in the Background: it forces the policy to retain distinct gaits rather than collapsing onto a single dominant one, since each code addresses a separate region of the motion distribution; and it exposes an interpretable skill menu that a high-level controller can set directly, rather than coaxing behaviors through the task reward alone. This stage constitutes the principal contribution of the full thesis and follows the proposal defense.
+
+== A Single-Stage Variant as Future Investigation (future works)
+
+The two-stage design freezes the codebook before policy training, which simplifies optimization but prevents the representation from adapting to the demands of control. A natural alternative, left for future investigation, is to learn the codebook jointly with the AMP discriminator and policy in a single stage, allowing the discrete motion tokens and the adversarial objective to shape one another during training. This variant promises a representation tuned to what the discriminator finds hard to imitate, at the cost of a substantially more delicate optimization problem, and is noted here as a direction rather than a commitment.
+
+== Evaluation
+
+The latent-conditioned policy will be compared against a task-reward-only PPO baseline and a vanilla (non-latent) AMP policy on the same Go2 character and MANN data, along three axes: motion naturalness, gait quality, and task performance. The latent variant is additionally assessed on a capability the baselines lack — controllable gait selection — by measuring whether setting the code $k$ reliably elicits the corresponding gait across the commanded velocity range.
 
 = Preliminary Results
 
