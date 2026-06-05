@@ -1,7 +1,8 @@
-@article{kaup_review_nodate,
+@article{kaup_review_2024,
 	title = {A Review of Nine Physics Engines for Reinforcement Learning Research},
 	abstract = {We present a review of popular simulation engines and frameworks used in reinforcement learning ({RL}) research, aiming to guide researchers in selecting tools for creating simulated physical environments for {RL} and training setups. It evaluates nine frameworks (Brax, Chrono, Gazebo, {MuJoCo}, {ODE}, {PhysX}, {PyBullet}, Webots, and Unity) based on their popularity, feature range, quality, usability, and {RL} capabilities. We highlight the challenges in selecting and utilizing physics engines for {RL} research, including the need for detailed comparisons and an understanding of each framework’s capabilities. Key findings indicate {MuJoCo} as the leading framework due to its performance and flexibility, despite usability challenges. Unity is noted for its ease of use but lacks scalability and simulation fidelity. The study calls for further development to improve simulation engines’ usability and performance and stresses the importance of transparency and reproducibility in {RL} research. This review contributes to the {RL} community by offering insights into the selection process for simulation engines, facilitating informed decision-making.},
 	author = {Kaup, Michael and Wolff, Cornelius and Hwang, Hyerim and Mayer, Julius and Bruni, Elia},
+	date = {2024-08-23},
 	langid = {english},
 }
 
@@ -67,6 +68,23 @@
 	keywords = {Computer Science - Machine Learning, Statistics - Machine Learning},
 }
 
+@inproceedings{tessler_calm_2023,
+	location = {New York, {NY}, {USA}},
+	title = {{CALM}: Conditional Adversarial Latent Models  for Directable Virtual Characters},
+	isbn = {979-8-4007-0159-7},
+	url = {https://dl.acm.org/doi/10.1145/3588432.3591541},
+	doi = {10.1145/3588432.3591541},
+	series = {{SIGGRAPH} '23},
+	shorttitle = {{CALM}},
+	abstract = {In this work, we present Conditional Adversarial Latent Models\&nbsp; ({CALM}), an approach for generating diverse and directable behaviors for user-controlled interactive virtual characters. Using imitation learning, {CALM}\&nbsp; learns a representation of movement that captures the complexity and diversity of human motion, and enables direct control over character movements. The approach jointly learns a control policy and a motion encoder that reconstructs key characteristics of a given motion without merely replicating it. The results show that {CALM}\&nbsp; learns a semantic motion representation, enabling control over the generated motions and style-conditioning for higher-level task training. Once trained, the character can be controlled using intuitive interfaces, akin to those found in video games.},
+	pages = {1--9},
+	booktitle = {{ACM} {SIGGRAPH} 2023 Conference Proceedings},
+	publisher = {Association for Computing Machinery},
+	author = {Tessler, Chen and Kasten, Yoni and Guo, Yunrong and Mannor, Shie and Chechik, Gal and Peng, Xue Bin},
+	urldate = {2026-06-05},
+	date = {2023-07-23},
+}
+
 @article{peng_deepmimic_2018,
 	title = {{DeepMimic}: example-guided deep reinforcement learning of physics-based character skills},
 	volume = {37},
@@ -83,22 +101,6 @@
 	urldate = {2026-02-27},
 	date = {2018-08-31},
 	langid = {english},
-}
-
-@misc{li_language_2025,
-	title = {From Language to Locomotion: Retargeting-free Humanoid Control via Motion Latent Guidance},
-	url = {http://arxiv.org/abs/2510.14952},
-	doi = {10.48550/arXiv.2510.14952},
-	shorttitle = {From Language to Locomotion},
-	abstract = {Natural language offers a natural interface for humanoid robots, but existing language-guided humanoid locomotion pipelines remain cumbersome and untrustworthy. They typically decode human motion, retarget it to robot morphology, and then track it with a physics-based controller. However, this multi-stage process is prone to cumulative errors, introduces high latency, and yields weak coupling between semantics and control. These limitations call for a more direct pathway from language to action, one that eliminates fragile intermediate stages. Therefore, we present {RoboGhost}, a retargeting-free framework that directly conditions humanoid policies on language-grounded motion latents. By bypassing explicit motion decoding and retargeting, {RoboGhost} enables a diffusion-based policy to denoise executable actions directly from noise, preserving semantic intent and supporting fast, reactive control. A hybrid causal transformer-diffusion motion generator further ensures long-horizon consistency while maintaining stability and diversity, yielding rich latent representations for precise humanoid behavior. Extensive experiments demonstrate that {RoboGhost} substantially reduces deployment latency, improves success rates and tracking precision, and produces smooth, semantically aligned locomotion on real humanoids. Beyond text, the framework naturally extends to other modalities such as images, audio, and music, providing a universal foundation for vision-language-action humanoid systems.},
-	number = {{arXiv}:2510.14952},
-	publisher = {{arXiv}},
-	author = {Li, Zhe and Chi, Cheng and Wei, Yangyang and Zhu, Boan and Peng, Yibo and Huang, Tao and Wang, Pengwei and Wang, Zhongyuan and Zhang, Shanghang and Xu, Chang},
-	urldate = {2026-03-09},
-	date = {2025-10-17},
-	eprinttype = {arxiv},
-	eprint = {2510.14952 [cs]},
-	keywords = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Robotics},
 }
 
 @article{mitchell_gaitor_2023,
@@ -138,22 +140,6 @@
 	date = {2020},
 }
 
-@misc{chen_gmt_2025,
-	title = {{GMT}: General Motion Tracking for Humanoid Whole-Body Control},
-	url = {http://arxiv.org/abs/2506.14770},
-	doi = {10.48550/arXiv.2506.14770},
-	shorttitle = {{GMT}},
-	abstract = {The ability to track general whole-body motions in the real world is a useful way to build general-purpose humanoid robots. However, achieving this can be challenging due to the temporal and kinematic diversity of the motions, the policy's capability, and the difficulty of coordination of the upper and lower bodies. To address these issues, we propose {GMT}, a general and scalable motion-tracking framework that trains a single unified policy to enable humanoid robots to track diverse motions in the real world. {GMT} is built upon two core components: an Adaptive Sampling strategy and a Motion Mixture-of-Experts ({MoE}) architecture. The Adaptive Sampling automatically balances easy and difficult motions during training. The {MoE} ensures better specialization of different regions of the motion manifold. We show through extensive experiments in both simulation and the real world the effectiveness of {GMT}, achieving state-of-the-art performance across a broad spectrum of motions using a unified general policy. Videos and additional information can be found at https://gmt-humanoid.github.io.},
-	number = {{arXiv}:2506.14770},
-	publisher = {{arXiv}},
-	author = {Chen, Zixuan and Ji, Mazeyu and Cheng, Xuxin and Peng, Xuanbin and Peng, Xue Bin and Wang, Xiaolong},
-	urldate = {2026-03-09},
-	date = {2025-09-04},
-	eprinttype = {arxiv},
-	eprint = {2506.14770 [cs]},
-	keywords = {Computer Science - Robotics},
-}
-
 @online{gulrajani_improved_2017,
 	title = {Improved Training of Wasserstein {GANs}},
 	url = {https://arxiv.org/abs/1704.00028v3},
@@ -177,25 +163,6 @@
 	urldate = {2026-05-04},
 	date = {2020-07-12},
 	langid = {english},
-}
-
-@article{han_lifelike_2024,
-	title = {Lifelike Agility and Play in Quadrupedal Robots using Reinforcement Learning and Generative Pre-trained Models},
-	volume = {6},
-	issn = {2522-5839},
-	url = {http://arxiv.org/abs/2308.15143},
-	doi = {10.1038/s42256-024-00861-3},
-	abstract = {Knowledge from animals and humans inspires robotic innovations. Numerous efforts have been made to achieve agile locomotion in quadrupedal robots through classical controllers or reinforcement learning approaches. These methods usually rely on physical models or handcrafted rewards to accurately describe the specific system, rather than on a generalized understanding like animals do. Here we propose a hierarchical framework to construct primitive-, environmental- and strategic-level knowledge that are all pre-trainable, reusable and enrichable for legged robots. The primitive module summarizes knowledge from animal motion data, where, inspired by large pre-trained models in language and image understanding, we introduce deep generative models to produce motor control signals stimulating legged robots to act like real animals. Then, we shape various traversing capabilities at a higher level to align with the environment by reusing the primitive module. Finally, a strategic module is trained focusing on complex downstream tasks by reusing the knowledge from previous levels. We apply the trained hierarchical controllers to the {MAX} robot, a quadrupedal robot developed in-house, to mimic animals, traverse complex obstacles and play in a designed challenging multi-agent chase tag game, where lifelike agility and strategy emerge in the robots.},
-	pages = {787--798},
-	number = {7},
-	journaltitle = {Nature Machine Intelligence},
-	shortjournal = {Nat Mach Intell},
-	author = {Han, Lei and Zhu, Qingxu and Sheng, Jiapeng and Zhang, Chong and Li, Tingguang and Zhang, Yizheng and Zhang, He and Liu, Yuzhen and Zhou, Cheng and Zhao, Rui and Li, Jie and Zhang, Yufeng and Wang, Rui and Chi, Wanchao and Li, Xiong and Zhu, Yonghui and Xiang, Lingzhu and Teng, Xiao and Zhang, Zhengyou},
-	urldate = {2026-05-05},
-	date = {2024-07-05},
-	eprinttype = {arxiv},
-	eprint = {2308.15143 [cs]},
-	keywords = {Computer Science - Artificial Intelligence, Computer Science - Robotics},
 }
 
 @article{starke_local_2020,
@@ -258,6 +225,7 @@
 	author = {Zhang, He and Starke, Sebastian and Komura, Taku and Saito, Jun},
 	urldate = {2026-05-05},
 	date = {2018-07-30},
+	keywords = {research-reframe},
 }
 
 @article{zhu_neural_2023,
@@ -283,34 +251,6 @@
 	author = {Oord, Aaron van den and Vinyals, Oriol and Kavukcuoglu, Koray},
 	urldate = {2026-06-04},
 	date = {2017-11-02},
-	langid = {english},
-}
-
-@article{choi_online_2000,
-	title = {Online motion retargetting},
-	volume = {11},
-	issn = {1099-1778},
-	url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/1099-1778%28200012%2911%3A5%3C223%3A%3AAID-VIS236%3E3.0.CO%3B2-5},
-	doi = {10.1002/1099-1778(200012)11:5<223::AID-VIS236>3.0.CO;2-5},
-	abstract = {This paper presents a method to retarget the motion of a character to another in real time. The technique is based on inverse rate control, which computes the changes in joint angles corresponding to the changes in end-effector position. While tracking the multiple end-effector trajectories of the original subject or character, our online motion retargetting also minimizes the joint angle differences by exploiting the kinematic redundancies of the animated model. This method can apply a captured motion to another anthropometry so that it can perform slightly different motion, while preserving the original motion characteristics. Because the above is done online, a real-time performance can be mapped to other characters. Moreover, if the method is used interactively during motion capture session, the feedback of retargetted motion on the screen provides more chances to get satisfactory results. As a by-product, our algorithm can be used to reduce measurement errors in restoring captured motion. The data enhancement improves the accuracy in both joint angles and end-effector positions. Experimental results show that our retargetting algorithm preserves high-frequency details of the original motion quite accurately. Copyright © 2000 John Wiley \& Sons, Ltd.},
-	pages = {223--235},
-	number = {5},
-	journaltitle = {The Journal of Visualization and Computer Animation},
-	author = {Choi, Kwang-Jin and Ko, Hyeong-Seok},
-	urldate = {2026-03-02},
-	date = {2000},
-	langid = {english},
-	note = {\_eprint: https://onlinelibrary.wiley.com/doi/pdf/10.1002/1099-1778\%28200012\%2911\%3A5\%3C223\%3A\%3AAID-{VIS}236\%3E3.0.{CO}\%3B2-5},
-	keywords = {character animation, inverse kinematics, motion editing, motion retargetting},
-}
-
-@article{noauthor_pdf_nodate,
-	title = {({PDF}) Variational Autoencoders and Wasserstein Generative Adversarial Networks for Improving the Anti-Money Laundering Process},
-	url = {https://www.researchgate.net/publication/352142543_Variational_Autoencoders_and_Wasserstein_Generative_Adversarial_Networks_for_Improving_the_Anti-Money_Laundering_Process},
-	doi = {10.1109/ACCESS.2021.3086359},
-	abstract = {{PDF} {\textbar} There has been much recent work on fraud and Anti Money Laundering ({AML}) detection using machine learning techniques. However, most algorithms are... {\textbar} Find, read and cite all the research you need on {ResearchGate}},
-	journaltitle = {{ResearchGate}},
-	urldate = {2026-06-04},
 	langid = {english},
 }
 
@@ -355,40 +295,10 @@
 	keywords = {Computer Science - Machine Learning},
 }
 
-@book{barto_reinforcement_nodate,
+@book{barto_reinforcement_2018,
 	title = {Reinforcement Learning: An Introduction},
 	author = {Barto, Andrew and Sutton, Richard},
-}
-
-@inproceedings{gleicher_retargetting_1998,
-	location = {Not Known},
-	title = {Retargetting motion to new characters},
-	rights = {https://www.acm.org/publications/policies/copyright\_policy\#Background},
-	isbn = {978-0-89791-999-9},
-	url = {http://portal.acm.org/citation.cfm?doid=280814.280820},
-	doi = {10.1145/280814.280820},
-	eventtitle = {the 25th annual conference},
-	pages = {33--42},
-	booktitle = {Proceedings of the 25th annual conference on Computer graphics and interactive techniques  - {SIGGRAPH} '98},
-	publisher = {{ACM} Press},
-	author = {Gleicher, Michael},
-	urldate = {2026-02-12},
-	date = {1998},
-	langid = {english},
-}
-
-@book{featherstone_rigid_2008,
-	location = {Boston, {MA}},
-	title = {Rigid Body Dynamics Algorithms},
-	rights = {http://www.springer.com/tdm},
-	isbn = {978-0-387-74314-1},
-	url = {http://link.springer.com/10.1007/978-1-4899-7560-7},
-	doi = {10.1007/978-1-4899-7560-7},
-	publisher = {Springer {US}},
-	author = {Featherstone, Roy},
-	urldate = {2026-05-17},
-	date = {2008},
-	langid = {english},
+	date = {2018-11-13},
 }
 
 @misc{schulman_trust_2017,
@@ -406,18 +316,33 @@
 	keywords = {Computer Science - Machine Learning},
 }
 
-@misc{mitchell_vae-loco_2023,
-	title = {{VAE}-Loco: Versatile Quadruped Locomotion by Learning a Disentangled Gait Representation},
-	url = {http://arxiv.org/abs/2205.01179},
-	doi = {10.48550/arXiv.2205.01179},
-	shorttitle = {{VAE}-Loco},
-	abstract = {Quadruped locomotion is rapidly maturing to a degree where robots are able to realise highly dynamic manoeuvres. However, current planners are unable to vary key gait parameters of the in-swing feet midair. In this work we address this limitation and show that it is pivotal in increasing controller robustness by learning a latent space capturing the key stance phases constituting a particular gait. This is achieved via a generative model trained on a single trot style, which encourages disentanglement such that application of a drive signal to a single dimension of the latent state induces holistic plans synthesising a continuous variety of trot styles. We demonstrate that specific properties of the drive signal map directly to gait parameters such as cadence, footstep height and full stance duration. Due to the nature of our approach these synthesised gaits are continuously variable online during robot operation. The use of a generative model facilitates the detection and mitigation of disturbances to provide a versatile and robust planning framework. We evaluate our approach on two versions of the real {ANYmal} quadruped robots and demonstrate that our method achieves a continuous blend of dynamic trot styles whilst being robust and reactive to external perturbations.},
-	number = {{arXiv}:2205.01179},
-	publisher = {{arXiv}},
-	author = {Mitchell, Alexander L. and Merkt, Wolfgang and Geisert, Mathieu and Gangapurwala, Siddhant and Engelcke, Martin and Jones, Oiwi Parker and Havoutis, Ioannis and Posner, Ingmar},
-	urldate = {2026-05-05},
-	date = {2023-07-12},
-	eprinttype = {arxiv},
-	eprint = {2205.01179 [cs]},
-	keywords = {Computer Science - Machine Learning, Computer Science - Robotics},
+@article{chen_variational_2021,
+	title = {Variational Autoencoders and Wasserstein Generative Adversarial Networks for Improving the Anti-Money Laundering Process},
+	volume = {9},
+	issn = {2169-3536},
+	url = {https://ieeexplore-ieee-org.ez9.periodicos.capes.gov.br/document/9446893},
+	doi = {10.1109/ACCESS.2021.3086359},
+	abstract = {There has been much recent work on fraud and Anti Money Laundering ({AML}) detection using machine learning techniques. However, most algorithms are based on supervised techniques. Studies show that supervised techniques often have the limitation of not adapting well to new irregular fraud patterns when the dataset is highly imbalanced. Instead, unsupervised learning can have a better capability to find anomalous and irregular patterns in new transaction. Despite this, unsupervised techniques also have the disadvantage of not being able to give state-of-the-art detection results. We propose a suite of unsupervised and deep learning techniques to implement an anti-money laundering and fraud detection system to resolve this limitation. The system leverages three deep learning models: autoencoder ({AE}), variational autoencoder ({VAE}), and a generative adversarial network. We preprocess the given dataset to separate the Transaction Date attribute into its base components to capture time-related fraud patterns. Also, Wasserstein Generative Adversarial Network ({WGAN}) is used to generate fraud transactions, which are then mixed with the base dataset to form a more balanced mixed dataset. These two datasets are used to train the {AE} and {VAE} models. We built two versions of the {AE} model (single-loss and multi-loss) besides a novel method of calculating the anomaly score threshold, called Recall-First Threshold ({RFT}), which helps enhance the model's performance. Experimental results demonstrated that the False Positive Rate ({FPR}) drops down to as low as 7\% in the proposed multi-loss {AE} model. In comparison, we achieved an accuracy of 93\%, with 100\% of the fraud transactions recalled successfully.},
+	pages = {83762--83785},
+	journaltitle = {{IEEE} Access},
+	author = {Chen, Zhiyuan and Soliman, Waleed Mahmoud and Nazir, Amril and Shorfuzzaman, Mohammad},
+	urldate = {2026-06-05},
+	date = {2021},
+	keywords = {Anti-money laundering ({AML}), Clustering algorithms, Decision trees, Deep learning, {GANs}, Generative adversarial networks, Radio frequency, Support vector machines, Unsupervised learning, anomaly detection, autoencoders, deep learning, fraud detection, unsupervised learning},
+}
+
+@inproceedings{serifi_vmp_2024,
+	location = {Goslar, {DEU}},
+	title = {{VMP}: Versatile Motion Priors for Robustly Tracking Motion on Physical Characters},
+	url = {https://dl.acm.org/doi/10.1111/cgf.15175},
+	doi = {10.1111/cgf.15175},
+	series = {{SCA} '24},
+	shorttitle = {{VMP}},
+	abstract = {Recent progress in physics-based character control has made it possible to learn policies from unstructured motion data. However, it remains challenging to train a single control policy that works with diverse and unseen motions, and can be deployed to real-world physical robots. In this paper, we propose a two-stage technique that enables the control of a character with a full-body kinematic motion reference, with a focus on imitation accuracy. In a first stage, we extract a latent space encoding by training a variational autoencoder, taking short windows of motion from unstructured data as input. We then use the embedding from the time-varying latent code to train a conditional policy in a second stage, providing a mapping from kinematic input to dynamics-aware output. By keeping the two stages separate, we benefit from self-supervised methods to get better latent codes and explicit imitation rewards to avoid mode collapse. We demonstrate the efficiency and robustness of our method in simulation, with unseen user-specified motions, and on a bipedal robot, where we bring dynamic motions to the real world.},
+	pages = {1--11},
+	booktitle = {Proceedings of the {ACM} {SIGGRAPH}/Eurographics Symposium on Computer Animation},
+	publisher = {Eurographics Association},
+	author = {Serifi, Agon and Grandia, Ruben and Knoop, Espen and Gross, Markus and Bächer, Moritz},
+	urldate = {2026-06-05},
+	date = {2024},
 }
