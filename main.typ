@@ -79,7 +79,7 @@
 
   #text(16pt, weight: "bold")[
    // Retargeting-Free Motion Imitation for Cross-Morphological Characters via Latent-Driven RL
-   Adversarial Motion Priors for Physics-Based Quadrupedal Locomotion Using Animal Motion Capture Data
+   Discrete Latent Conditioning of Adversarial Motion Priors for Physics-Based Quadrupedal Locomotion 
   ]
 
   #v(2cm)
@@ -126,6 +126,12 @@
   first-line-indent: 20pt,
   justify: true,
 )
+
+#heading(level: 1, numbering: none)[Abstract]
+
+Physics-based character control trained with task rewards alone produces locomotion that is physically valid but perceptually unnatural. Adversarial Motion Priors (AMP) close this gap by integrating motion capture or animation data into the reinforcement learning loop through a learned discriminator, but on datasets spanning multiple gaits AMP is prone to mode collapse and offers no explicit channel to request a specific skill at runtime. This work proposes to augment AMP with a discrete latent representation for a real dog motion capture dataset retargeted to a simulated Unitree Go2 in MuJoCo. A vector-quantized variational autoencoder (VQ-VAE) acts as a latent structuring model for the adversarial training, learning a codebook of gait prototypes whose indices condition the policy, adding a skill-selection channel while preserving AMP's naturalistic blending of gaits and the flexibility of its data-driven, scalable approach.
+
+*Keywords: physics-based character animation; adversarial motion priors; quadrupedal locomotion; discrete latent representations; reinforcement learning*
 
 = Introduction
 
